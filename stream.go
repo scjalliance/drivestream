@@ -178,7 +178,7 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 			phase.Log("Retrieving the most recent page from the repository\n")
 			last, err := w.LastPage()
 			if err != nil {
-				return nil
+				return err
 			}
 
 			var first bool
@@ -254,7 +254,7 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 				phase.Log("Retrieving the most recent page from the repository\n")
 				last, err := w.LastPage()
 				if err != nil {
-					return nil
+					return err
 				}
 
 				switch last.Type {
