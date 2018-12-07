@@ -44,8 +44,13 @@ func (r *Reader) NextState() StateNum {
 
 // LastState returns the last state of the collection.
 func (r *Reader) LastState() (State, error) {
+	return r.State(r.nextState - 1)
+}
+
+// State returns the requested state from the collection.
+func (r *Reader) State(stateNum StateNum) (State, error) {
 	var buf [1]State
-	_, err := r.repo.CollectionStates(r.seqNum, r.nextState-1, buf[:])
+	_, err := r.repo.CollectionStates(r.seqNum, stateNum, buf[:])
 	return buf[0], err
 }
 
@@ -71,10 +76,15 @@ func (r *Reader) NextPage() page.SeqNum {
 	return r.nextPage
 }
 
-// LastPage reads the last page from the collection.
+// LastPage returns the last page from the collection.
 func (r *Reader) LastPage() (page.Data, error) {
+	return r.Page(r.nextPage - 1)
+}
+
+// Page returns the requested page from the collection.
+func (r *Reader) Page(pageNum page.SeqNum) (page.Data, error) {
 	var buf [1]page.Data
-	_, err := r.repo.Pages(r.seqNum, r.nextPage-1, buf[:])
+	_, err := r.repo.Pages(r.seqNum, pageNum, buf[:])
 	return buf[0], err
 }
 

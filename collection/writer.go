@@ -51,6 +51,11 @@ func (w *Writer) LastState() (State, error) {
 	return w.reader().LastState()
 }
 
+// State returns the requested state from the collection.
+func (w *Writer) State(stateNum StateNum) (State, error) {
+	return w.reader().State(stateNum)
+}
+
 // States returns a slice of all states of the collection in ascending
 // order.
 func (w *Writer) States() ([]State, error) {
@@ -81,6 +86,11 @@ func (w *Writer) NextPage() page.SeqNum {
 // LastPage reads the last page from the collection.
 func (w *Writer) LastPage() (page.Data, error) {
 	return w.reader().LastPage()
+}
+
+// Page returns the requested page from the collection.
+func (w *Writer) Page(pageNum page.SeqNum) (page.Data, error) {
+	return w.reader().Page(pageNum)
 }
 
 // Pages returns a slice of all pages within the collection in ascending
