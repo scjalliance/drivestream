@@ -77,6 +77,18 @@ func (e InvalidState) Error() string {
 	return fmt.Sprintf("drivestream collection %d contains invalid data for state %d", e.SeqNum, e.StateNum)
 }
 
+// TruncatedStates reports that a request for collection states returned a
+// shorter list than expected. This is an indication that the repository is
+// providing an inconsistent view of its data.
+type TruncatedStates struct {
+	SeqNum SeqNum
+}
+
+// Error returns a string representation of the error.
+func (e TruncatedStates) Error() string {
+	return fmt.Sprintf("drivestream collection %d contains an inconsistent view of its states", e.SeqNum)
+}
+
 // PageNotFound reports that a requested page does not exist
 // within the collection.
 type PageNotFound struct {
@@ -112,4 +124,16 @@ type InvalidPage struct {
 // Error returns a string representation of the error.
 func (e InvalidPage) Error() string {
 	return fmt.Sprintf("drivestream collection %d contains invalid data for state %d", e.SeqNum, e.PageNum)
+}
+
+// TruncatedPages reports that a request for collection pages returned a
+// shorter list than expected. This is an indication that the repository is
+// providing an inconsistent view of its data.
+type TruncatedPages struct {
+	SeqNum SeqNum
+}
+
+// Error returns a string representation of the error.
+func (e TruncatedPages) Error() string {
+	return fmt.Sprintf("drivestream collection %d contains an inconsistent view of its pages", e.SeqNum)
 }
