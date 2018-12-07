@@ -23,7 +23,7 @@ func MarshalChange(change *drive.Change) (resource.Change, error) {
 				Time:    changed,
 				Removed: true,
 				File: resource.File{
-					ID: resource.ID(change.File.Id),
+					ID: resource.ID(change.FileId),
 				},
 			}, nil
 		default:

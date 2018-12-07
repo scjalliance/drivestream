@@ -166,7 +166,7 @@ func (c *Collector) Changes(ctx context.Context, token string, p []resource.Chan
 		call.TeamDriveId(c.id)
 		call.IncludeRemoved(true)
 		call.Spaces("drive")
-		call.Fields("nextPageToken", "newStartPageToken", "changes(fileId,removed,time,file/name,file/version,file/md5Checksum,file/size,file/lastModifyingUser,type)")
+		call.Fields("nextPageToken", "newStartPageToken", "changes(fileId,removed,time,file(id,name,mimeType,description,parents,version,createdTime,modifiedTime,lastModifyingUser,originalFilename,md5Checksum,headRevisionId,size),type,teamDriveId,teamDrive(id,name,createdTime))")
 		call.PageSize(c.pageSize(bufferSize - n))
 
 		result, err := call.Do()
