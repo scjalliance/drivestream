@@ -35,6 +35,12 @@ func (repo *Repository) DriveID() resource.ID {
 	return repo.drive.ID
 }
 
+// NextCollection returns the sequence number to use for the next
+// collection.
+func (repo *Repository) NextCollection() (collection.SeqNum, error) {
+	return collection.SeqNum(len(repo.collections)), nil
+}
+
 // Collections returns collection data for a range of collections
 // starting at the given sequence number. Up to len(p) entries will
 // be returned in p. The number of entries is returned as n.
@@ -49,12 +55,6 @@ func (repo *Repository) Collections(start collection.SeqNum, p []collection.Data
 	return n, nil
 }
 
-// NextCollection returns the sequence number to use for the next
-// collection.
-func (repo *Repository) NextCollection() (collection.SeqNum, error) {
-	return collection.SeqNum(len(repo.collections)), nil
-}
-
 // CreateCollection creates a new collection with the given sequence
 // number and data. If a collection already exists with the sequence
 // number an error will be returned.
@@ -64,6 +64,15 @@ func (repo *Repository) CreateCollection(c collection.SeqNum, data collection.Da
 	}
 	repo.collections = append(repo.collections, Collection{Data: data})
 	return nil
+}
+
+// NextCollectionState returns the state number to use for the next
+// state of the collection.
+func (repo *Repository) NextCollectionState(c collection.SeqNum) (collection.StateNum, error) {
+	if int(c) >= len(repo.collections) {
+		return 0, collection.NotFound{SeqNum: c}
+	}
+	return collection.StateNum(len(repo.collections[c].States)), nil
 }
 
 // CollectionStates returns a range of collection states for the given
@@ -80,15 +89,6 @@ func (repo *Repository) CollectionStates(c collection.SeqNum, start collection.S
 	}
 
 	return copy(p, col.States[start:]), nil
-}
-
-// NextCollectionState returns the state number to use for the next
-// state of the collection.
-func (repo *Repository) NextCollectionState(c collection.SeqNum) (collection.StateNum, error) {
-	if int(c) >= len(repo.collections) {
-		return 0, collection.NotFound{SeqNum: c}
-	}
-	return collection.StateNum(len(repo.collections[c].States)), nil
 }
 
 // CreateCollectionState creates a new collection state with the given
