@@ -91,23 +91,23 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 
 	for {
 		col := update.Task(fmt.Sprintf("COLLECTION %d", seqNum))
-		preparation := col.Task("PREPARATION")
+		eval := col.Task("EVAL")
 
-		preparation.Log("Creating writer\n")
+		eval.Log("Creating writer\n")
 
 		w, err := collection.NewWriter(s.repo, seqNum, s.instance)
 		if err != nil {
 			return err
 		}
 
-		preparation.Log("Reading collection data\n")
+		eval.Log("Reading collection data\n")
 		data, err := w.Data()
 		if err != nil {
 			return err
 		}
 
 		if w.NextState() == 0 {
-			preparation.Log("Adding the initial collection state to the repository\n")
+			col.Task("INIT").Log("Adding the initial collection state to the repository\n")
 			switch data.Type {
 			case collection.Full:
 				w.SetState(collection.PhaseDriveCollection, 0)
@@ -125,9 +125,9 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 
 		switch state.Phase {
 		case collection.PhaseCommitProcessing:
-			preparation.Log("[%s] %s phase\n", data.Type, state.Phase)
+			eval.Log("[%s] %s phase\n", data.Type, state.Phase)
 		default:
-			preparation.Log("[%s] %s phase, page %d\n", data.Type, state.Phase, state.Page)
+			eval.Log("[%s] %s phase, page %d\n", data.Type, state.Phase, state.Page)
 		}
 
 		switch state.Phase {
