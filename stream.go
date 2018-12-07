@@ -51,6 +51,14 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 		}
 	}(&err)
 
+	if err = s.collect(ctx, c, update); err != nil {
+		return err
+	}
+
+	return s.buildCommits(ctx, update)
+}
+
+func (s *Stream) collect(ctx context.Context, c Collector, update taskLogger) (err error) {
 	seqNum, err := s.repo.NextCollection()
 	if err != nil {
 		update.Log("Retrieving existing collections from the repository\n")
@@ -383,6 +391,10 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 			return fmt.Errorf("The collection phase is of unrecognized type %d", state.Phase)
 		}
 	}
+}
+
+func (s *Stream) buildCommits(ctx context.Context, task taskLogger) (err error) {
+	return nil
 }
 
 // Cursor returns a new cursor for s.
