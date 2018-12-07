@@ -40,11 +40,11 @@ func update(ctx context.Context, app *kingpin.Application, db *DB, includeStats 
 
 			prefix := fmt.Sprintf("DRIVE %s", teamDrive.ID)
 
-			fmt.Printf("%s: %s\n", prefix, teamDrive.Name)
+			fmt.Printf("%s: NAME: %s\n", prefix, teamDrive.Name)
 
 			repo, existing := db.Repository(teamDrive.ID)
 			if !existing {
-				fmt.Printf("%s: Preparing %s repository\n", prefix, db.Kind())
+				fmt.Printf("%s: INIT: Repository (%s)\n", prefix, db.Kind())
 			}
 
 			collector := driveapicollector.New(driveService, string(teamDrive.ID))

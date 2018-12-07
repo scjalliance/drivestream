@@ -39,33 +39,34 @@ func New(repo Repository, options ...Option) *Stream {
 // Update queries c for an updated set of changes, processes them and
 // persists them in the stream's repository.
 func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
-	update := newTaskLogger(s.stdout).Task(fmt.Sprintf("DRIVE %s", s.repo.DriveID()))
+	update := newTaskLogger(s.stdout).Task(fmt.Sprintf("DRIVE %s", s.repo.DriveID())).Task("UPDATE")
 
-	update.Log("Update started\n")
+	update.Log("Started  %s\n", time.Now().Format(time.RFC3339))
 	defer func(e *error) {
 		if *e != nil {
 			update.Log("ERROR: %v\n", *e)
-			update.Log("Update aborted after %s\n", update.Duration())
+			update.Log("Aborted  %s | %s\n", time.Now().Format(time.RFC3339), update.Duration())
 		} else {
-			update.Log("Update finished in %s\n", update.Duration())
+			update.Log("Finished %s | %s\n", time.Now().Format(time.RFC3339), update.Duration())
 		}
 	}(&err)
 
-	update.Log("Retrieving existing collections from the repository\n")
 	seqNum, err := s.repo.NextCollection()
 	if err != nil {
+		update.Log("Retrieving existing collections from the repository\n")
 		return err
 	}
 
 	switch {
 	case seqNum > 0:
 		if seqNum == 1 {
-			update.Log("%d collection found\n", seqNum)
+			//update.Log("%d collection\n", seqNum)
 		} else {
-			update.Log("%d collections found\n", seqNum)
+			//update.Log("%d collections\n", seqNum)
 		}
 		seqNum--
 	case seqNum < 0:
+		update.Log("Retrieving existing collections from the repository\n")
 		return fmt.Errorf("the repository returned a negative number of collections (%d)", seqNum)
 	case seqNum == 0:
 		update.Log("No collections found. Initializing.\n")
@@ -93,16 +94,15 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 		col := update.Task(fmt.Sprintf("COLLECTION %d", seqNum))
 		eval := col.Task("EVAL")
 
-		eval.Log("Creating writer\n")
-
 		w, err := collection.NewWriter(s.repo, seqNum, s.instance)
 		if err != nil {
+			eval.Log("Creating writer\n")
 			return err
 		}
 
-		eval.Log("Reading collection data\n")
 		data, err := w.Data()
 		if err != nil {
+			eval.Log("Reading collection data\n")
 			return err
 		}
 
@@ -120,14 +120,15 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 
 		state, err := w.LastState()
 		if err != nil {
+			eval.Log("Examining state\n")
 			return err
 		}
 
 		switch state.Phase {
 		case collection.PhaseCommitProcessing:
-			eval.Log("[%s] %s phase\n", data.Type, state.Phase)
+			eval.Log("%s | %s | PAGE %d\n", strings.ToUpper(data.Type.String()), strings.ToUpper(state.Phase.String()), state.Page)
 		default:
-			eval.Log("[%s] %s phase, page %d\n", data.Type, state.Phase, state.Page)
+			eval.Log("%s | %s\n", strings.ToUpper(data.Type.String()), strings.ToUpper(state.Phase.String()))
 		}
 
 		switch state.Phase {
@@ -327,7 +328,6 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 			col := update.Task(fmt.Sprintf("COLLECTION %d", nextSeqNum))
 
 			eval := col.Task("EVAL")
-			eval.Log("Checking for new changes\n")
 
 			var startToken string
 
@@ -336,7 +336,8 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 			} else {
 				last, err := w.LastPage()
 				if err != nil {
-					return nil
+					eval.Log("Determining starting token\n")
+					return err
 				}
 
 				switch last.Type {
@@ -345,11 +346,13 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 				case page.ChangeList:
 					startToken = last.NextStartToken
 				default:
+					eval.Log("Determining starting token\n")
 					return fmt.Errorf("the previous collection page was of unrecognized type %d", data.Type)
 				}
 			}
 
 			if startToken == "" {
+				eval.Log("Determining starting token\n")
 				return fmt.Errorf("failed to determine starting token of next collection")
 			}
 
@@ -360,9 +363,11 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 			)
 			n, nextToken, _, err = c.Changes(ctx, startToken, buf[:])
 			if err != nil {
+				eval.Log("Checking for new changes\n")
 				return err
 			}
 			if n == 0 && nextToken != "" {
+				eval.Log("Checking for new changes\n")
 				return fmt.Errorf("the collector returned an empty change data page")
 			}
 
