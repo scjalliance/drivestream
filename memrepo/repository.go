@@ -2,6 +2,7 @@ package memrepo
 
 import (
 	"github.com/scjalliance/drivestream/collection"
+	"github.com/scjalliance/drivestream/commit"
 	"github.com/scjalliance/drivestream/page"
 	"github.com/scjalliance/drivestream/resource"
 )
@@ -11,10 +12,10 @@ import (
 type Repository struct {
 	drive       Drive
 	collections []Collection
-	files       map[resource.ID]File
+	commits     []Commit
+	//files       map[resource.ID]File
 	//trees       map[resource.ID]Tree
 	//content     map[filetree.Hash]filetree.Content
-	//commits     []commit.Data
 	//changeSets []drivestream.ChangeSet
 }
 
@@ -24,7 +25,7 @@ func New(teamDriveID resource.ID) *Repository {
 		drive: Drive{
 			ID: teamDriveID,
 		},
-		files: make(map[resource.ID]File),
+		//files: make(map[resource.ID]File),
 		//trees:   make(map[resource.ID]Tree),
 		//content: make(map[filetree.Hash]filetree.Content),
 	}
@@ -146,5 +147,75 @@ func (repo *Repository) ClearPages(c collection.SeqNum) error {
 		return collection.NotFound{SeqNum: c}
 	}
 	repo.collections[c].Pages = nil
+	return nil
+}
+
+// NextCommit returns the sequence number to use for the next
+// commit.
+func (repo *Repository) NextCommit() (n commit.SeqNum, err error) {
+	return commit.SeqNum(len(repo.commits)), nil
+}
+
+// Commits returns commit data for a range of commits
+// starting at the given sequence number. Up to len(p) entries will
+// be returned in p. The number of entries is returned as n.
+func (repo *Repository) Commits(start commit.SeqNum, p []commit.Data) (n int, err error) {
+	if int(start) >= len(repo.commits) {
+		return 0, commit.NotFound{SeqNum: start}
+	}
+	for n < len(p) && n+int(start) < len(repo.commits) {
+		p[n] = repo.commits[n+int(start)].Data
+		n++
+	}
+	return n, nil
+}
+
+// CreateCommit creates a new commit with the given sequence
+// number and data. If a commit already exists with the sequence
+// number an error will be returned.
+func (repo *Repository) CreateCommit(c commit.SeqNum, data commit.Data) error {
+	if int(c) != len(repo.commits) {
+		return commit.OutOfOrder{SeqNum: c}
+	}
+	repo.commits = append(repo.commits, Commit{Data: data})
+	return nil
+}
+
+// NextCommitState returns the state number to use for the next
+// state of the commit.
+func (repo *Repository) NextCommitState(c commit.SeqNum) (n commit.StateNum, err error) {
+	if int(c) >= len(repo.commits) {
+		return 0, commit.NotFound{SeqNum: c}
+	}
+	return commit.StateNum(len(repo.commits[c].States)), nil
+}
+
+// CommitStates returns a range of commit states for the given
+// commit, starting at the given state number. Up to len(p) states
+// will be returned in p. The number of states is returned as n.
+func (repo *Repository) CommitStates(c commit.SeqNum, start commit.StateNum, p []commit.State) (n int, err error) {
+	if int(c) >= len(repo.commits) {
+		return 0, commit.NotFound{SeqNum: c}
+	}
+	col := &repo.commits[c]
+
+	if int(start) >= len(col.States) {
+		return 0, commit.StateNotFound{SeqNum: c, StateNum: start}
+	}
+
+	return copy(p, col.States[start:]), nil
+}
+
+// CreateCommitState creates a new commit state with the given
+// state number and data. If a state already exists with the state
+// number an error will be returned.
+func (repo *Repository) CreateCommitState(c commit.SeqNum, stateNum commit.StateNum, state commit.State) error {
+	if int(c) >= len(repo.commits) {
+		return commit.NotFound{SeqNum: c}
+	}
+	if int(stateNum) != len(repo.commits[c].States) {
+		return commit.StateOutOfOrder{SeqNum: c, StateNum: stateNum}
+	}
+	repo.commits[c].States = append(repo.commits[c].States, state)
 	return nil
 }

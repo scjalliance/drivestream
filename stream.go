@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/scjalliance/drivestream/commit"
+
 	"github.com/scjalliance/drivestream/collection"
 	"github.com/scjalliance/drivestream/page"
 	"github.com/scjalliance/drivestream/resource"
@@ -61,7 +63,7 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 func (s *Stream) collect(ctx context.Context, c Collector, update taskLogger) (err error) {
 	seqNum, err := s.repo.NextCollection()
 	if err != nil {
-		update.Log("Retrieving existing collections from the repository\n")
+		update.Log("Retrieving collections from the repository\n")
 		return err
 	}
 
@@ -74,7 +76,7 @@ func (s *Stream) collect(ctx context.Context, c Collector, update taskLogger) (e
 		}
 		seqNum--
 	case seqNum < 0:
-		update.Log("Retrieving existing collections from the repository\n")
+		update.Log("Retrieving collections from the repository\n")
 		return fmt.Errorf("the repository returned a negative number of collections (%d)", seqNum)
 	case seqNum == 0:
 		update.Log("No collections found. Initializing.\n")
@@ -167,8 +169,8 @@ func (s *Stream) collect(ctx context.Context, c Collector, update taskLogger) (e
 				return err
 			}
 
-			phase.Log("Updating collection state\n")
 			if err := w.SetState(collection.PhaseFileCollection, 0); err != nil {
+				phase.Log("Updating collection state\n")
 				return err
 			}
 
@@ -242,8 +244,8 @@ func (s *Stream) collect(ctx context.Context, c Collector, update taskLogger) (e
 			}
 			phase.Log("The end of the file data series has been reached\n")
 
-			phase.Log("Updating collection state\n")
 			if err := w.SetState(collection.PhaseChangeCollection, 0); err != nil {
+				phase.Log("Updating collection state\n")
 				return err
 			}
 
@@ -312,8 +314,8 @@ func (s *Stream) collect(ctx context.Context, c Collector, update taskLogger) (e
 			}
 			phase.Log("The end of the change data series has been reached\n")
 
-			phase.Log("Updating collection state\n")
 			if err := w.SetState(collection.PhaseFinalized, 0); err != nil {
+				phase.Log("Updating collection state\n")
 				return err
 			}
 
@@ -393,8 +395,252 @@ func (s *Stream) collect(ctx context.Context, c Collector, update taskLogger) (e
 	}
 }
 
-func (s *Stream) buildCommits(ctx context.Context, task taskLogger) (err error) {
-	return nil
+func (s *Stream) buildCommits(ctx context.Context, update taskLogger) (err error) {
+	seqNum, err := s.repo.NextCommit()
+	if err != nil {
+		update.Log("Retrieving commits from the repository\n")
+		return err
+	}
+
+	switch {
+	case seqNum > 0:
+		if seqNum == 1 {
+			//update.Log("%d commit\n", seqNum)
+		} else {
+			//update.Log("%d commits\n", seqNum)
+		}
+		seqNum--
+	case seqNum < 0:
+		update.Log("Retrieving commits from the repository\n")
+		return fmt.Errorf("the repository returned a negative number of commits (%d)", seqNum)
+	case seqNum == 0:
+		isReady, err := s.readyToCommit(0)
+		if err != nil {
+			update.Log("Retrieving collections from the repository\n")
+			return err
+		}
+
+		if !isReady {
+			update.Log("Nothing to commit.\n")
+			return nil
+		}
+
+		com := update.Task(fmt.Sprintf("COMMIT %d", seqNum))
+		init := com.Task("INIT")
+		init.Log("Adding commit to the repository\n")
+		if err = s.repo.CreateCommit(seqNum, commit.Data{}); err != nil {
+			return err
+		}
+	}
+
+	for {
+		com := update.Task(fmt.Sprintf("COMMIT %d", seqNum))
+		eval := com.Task("EVAL")
+
+		w, err := commit.NewWriter(s.repo, seqNum, s.instance)
+		if err != nil {
+			eval.Log("Creating writer\n")
+			return err
+		}
+
+		data, err := w.Data()
+		if err != nil {
+			eval.Log("Reading commit data\n")
+			return err
+		}
+
+		if w.NextState() == 0 {
+			com.Task("INIT").Log("Adding commit state 0\n")
+			w.SetState(commit.PhaseSourceProcessing, data.Source.Page)
+		}
+
+		state, err := w.LastState()
+		if err != nil {
+			eval.Log("Examining state\n")
+			return err
+		}
+
+		var colType collection.Type
+		{
+			var buf [1]collection.Data
+			if _, err := s.repo.Collections(data.Source.Collection, buf[:]); err != nil {
+				eval.Log("Examining source collection\n")
+				return err
+			}
+			colType = buf[0].Type
+		}
+
+		if state.Phase == commit.PhaseSourceProcessing {
+			switch colType {
+			case collection.Full:
+				eval.Log("%s | COLLECTION %d [%s] | PAGE %d\n", strings.ToUpper(state.Phase.String()), data.Source.Collection, strings.ToUpper(colType.String()), state.Page)
+			case collection.Incremental:
+				eval.Log("%s | COLLECTION %d [%s] | PAGE %d | INDEX %d\n", strings.ToUpper(state.Phase.String()), data.Source.Collection, strings.ToUpper(colType.String()), data.Source.Page, data.Source.Index)
+			}
+		} else {
+			eval.Log("%s\n", strings.ToUpper(state.Phase.String()))
+		}
+
+		switch state.Phase {
+		case commit.PhaseSourceProcessing:
+			phase := com.Task(strings.ToUpper(commit.PhaseSourceProcessing.String()))
+			phase.Log("Starting phase\n")
+
+			switch colType {
+			case collection.Full:
+				col, err := collection.NewReader(s.repo, data.Source.Collection)
+				if err != nil {
+					phase.Log("Examining source collection\n")
+					return err
+				}
+
+				for {
+					pg, err := col.Page(state.Page)
+					if err != nil {
+						phase.Log("Retrieving page data\n")
+						return err
+					}
+
+					phase.Log("COL %d PAGE %d\n", data.Source.Collection, state.Page)
+
+					for i := range pg.Changes {
+						_ = pg.Changes[i]
+						// TODO: Process changes
+					}
+
+					if state.Page+1 >= col.NextPage() {
+						break
+					}
+
+					state.Page++
+					if err := w.SetState(commit.PhaseSourceProcessing, state.Page); err != nil {
+						phase.Log("Updating commit state\n")
+						return err
+					}
+				}
+			case collection.Incremental:
+				phase.Log("COL %d PAGE %d INDEX %d\n", data.Source.Collection, data.Source.Page, data.Source.Index)
+				// TODO: Process change
+			default:
+				return fmt.Errorf("the source collection is of unrecognized type %d", colType)
+			}
+
+			if err := w.SetState(commit.PhaseTreeProcessing, 0); err != nil {
+				phase.Log("Updating commit state\n")
+				return err
+			}
+
+			phase.Log("Finished phase in %s\n", phase.Duration())
+
+			fallthrough
+		case commit.PhaseTreeProcessing:
+			phase := com.Task(strings.ToUpper(commit.PhaseTreeProcessing.String()))
+			phase.Log("Starting phase\n")
+
+			if err := w.SetState(commit.PhaseFinalized, 0); err != nil {
+				phase.Log("Updating commit state\n")
+				return err
+			}
+
+			phase.Log("Finished phase in %s\n", phase.Duration())
+
+			fallthrough
+		case commit.PhaseFinalized:
+			nextSeqNum := seqNum + 1
+			com := update.Task(fmt.Sprintf("COMMIT %d", nextSeqNum))
+
+			eval := com.Task("EVAL")
+
+			isReady := false
+			nextSource := data.Source
+
+			switch colType {
+			case collection.Incremental:
+				col, err := collection.NewReader(s.repo, nextSource.Collection)
+				if err != nil {
+					eval.Log("Examining source collection\n")
+					return err
+				}
+				pg, err := col.Page(nextSource.Page)
+				if err != nil {
+					eval.Log("Retrieving page data\n")
+					return err
+				}
+				switch {
+				case nextSource.Index+1 < len(pg.Changes):
+					isReady = true
+					nextSource.Index++
+				case nextSource.Page+1 < col.NextPage():
+					isReady = true
+					nextSource.Page++
+					nextSource.Index = 0
+				default:
+					isReady, err = s.readyToCommit(nextSource.Collection + 1)
+					if err != nil {
+						eval.Log("Examining source collection\n")
+						return err
+					}
+					nextSource.Collection++
+					nextSource.Page = 0
+					nextSource.Index = 0
+				}
+			case collection.Full:
+				isReady, err = s.readyToCommit(nextSource.Collection + 1)
+				if err != nil {
+					eval.Log("Examining source collection\n")
+					return err
+				}
+				nextSource.Collection++
+				nextSource.Page = 0
+				nextSource.Index = 0
+			default:
+				return fmt.Errorf("the source collection is of unrecognized type %d", colType)
+			}
+
+			if !isReady {
+				eval.Log("No more data is ready for processing\n")
+				return nil
+			}
+
+			eval.Log("More data is ready for processing\n")
+
+			init := com.Task("INIT")
+
+			init.Log("Adding commit to the repository\n")
+			data := commit.Data{
+				Source: nextSource,
+			}
+			if err = s.repo.CreateCommit(nextSeqNum, data); err != nil {
+				return err
+			}
+
+			seqNum = nextSeqNum
+		default:
+			return fmt.Errorf("the commit phase is of unrecognized type %d", state.Phase)
+		}
+	}
+}
+
+func (s *Stream) readyToCommit(seqNum collection.SeqNum) (bool, error) {
+	next, err := s.repo.NextCollection()
+	if err != nil {
+		return false, err
+	}
+	if seqNum >= next {
+		return false, nil
+	}
+	col, err := collection.NewReader(s.repo, seqNum)
+	if err != nil {
+		return false, err
+	}
+	if col.NextState() == 0 {
+		return false, nil
+	}
+	last, err := col.LastState()
+	if err != nil {
+		return false, err
+	}
+	return last.Phase == collection.PhaseFinalized, nil
 }
 
 // Cursor returns a new cursor for s.

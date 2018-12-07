@@ -19,7 +19,7 @@ func main() {
 		updateInterval = updateCommand.Flag("interval", "interval between updates").Short('i').Envar("INTERVAL").Duration()
 		updateWanted   = updateCommand.Arg("wanted", "team drives to update (name or ID)").Strings()
 		dumpCommand    = app.Command("dump", "Dumps team drive metadata currently stored within a drivestream database.")
-		dumpKinds      = dumpCommand.Flag("kind", "kinds of data to dump").Short('k').Default("collections").Strings()
+		dumpKinds      = dumpCommand.Flag("kind", "kinds of data to dump").Short('k').Default("collections", "commits").Strings()
 		dumpWanted     = dumpCommand.Arg("wanted", "team drives to dump (name or ID)").Strings()
 	)
 

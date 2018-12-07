@@ -3,6 +3,7 @@ package boltrepo
 import (
 	"github.com/boltdb/bolt"
 	"github.com/scjalliance/drivestream/collection"
+	"github.com/scjalliance/drivestream/commit"
 	"github.com/scjalliance/drivestream/resource"
 )
 
@@ -58,4 +59,32 @@ func collectionBucket(tx *bolt.Tx, teamDriveID resource.ID, c collection.SeqNum)
 	}
 	key := makeCollectionKey(c)
 	return collections.Bucket(key[:])
+}
+
+// commitsBucket returns the commits bucket of the drive.
+func commitsBucket(tx *bolt.Tx, teamDriveID resource.ID) *bolt.Bucket {
+	drv := driveBucket(tx, teamDriveID)
+	if drv == nil {
+		return nil
+	}
+	return drv.Bucket([]byte(CommitBucket))
+}
+
+// commitsBucket returns the commits bucket of the drive.
+func createCommitsBucket(tx *bolt.Tx, teamDriveID resource.ID) (*bolt.Bucket, error) {
+	drv, err := createDriveBucket(tx, teamDriveID)
+	if err != nil {
+		return nil, err
+	}
+	return drv.CreateBucketIfNotExists([]byte(CommitBucket))
+}
+
+// commitBucket returns the bucket of a particular commit.
+func commitBucket(tx *bolt.Tx, teamDriveID resource.ID, c commit.SeqNum) *bolt.Bucket {
+	commits := commitsBucket(tx, teamDriveID)
+	if commits == nil {
+		return nil
+	}
+	key := makeCommitKey(c)
+	return commits.Bucket(key[:])
 }

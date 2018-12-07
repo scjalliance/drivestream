@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/scjalliance/drivestream/collection"
+	"github.com/scjalliance/drivestream/commit"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -58,7 +59,7 @@ func dump(ctx context.Context, app *kingpin.Application, db *DB, kinds []string,
 
 					data, err := reader.Data()
 					if err != nil {
-						app.Fatalf("failed to read data from repository %s: %v", teamDriveID, err)
+						app.Fatalf("failed to read collection data from repository %s: %v", teamDriveID, err)
 					}
 
 					{
@@ -72,7 +73,7 @@ func dump(ctx context.Context, app *kingpin.Application, db *DB, kinds []string,
 
 					states, err := reader.States()
 					if err != nil {
-						app.Fatalf("failed to read states from repository %s: %v", teamDriveID, err)
+						app.Fatalf("failed to read collection states from repository %s: %v", teamDriveID, err)
 					}
 					for i, state := range states {
 						b, err := json.Marshal(state)
@@ -98,6 +99,45 @@ func dump(ctx context.Context, app *kingpin.Application, db *DB, kinds []string,
 							} else {
 								fmt.Printf("%s: COLLECTION %d: PAGE %d: CHANGE %d: %v\n", prefix, cursor.SeqNum(), i, c, string(b))
 							}
+						}
+					}
+				}
+
+			case "commits", "commit", "com":
+				cursor, err := commit.NewCursor(repo)
+				if err != nil {
+					app.Fatalf("failed to create commit cursor for repository %s: %v", teamDriveID, err)
+				}
+				for cursor.First(); cursor.Valid(); cursor.Next() {
+					reader, err := cursor.Reader()
+					if err != nil {
+						app.Fatalf("failed to create commit reader for repository %s: %v", teamDriveID, err)
+					}
+
+					data, err := reader.Data()
+					if err != nil {
+						app.Fatalf("failed to read commit data from repository %s: %v", teamDriveID, err)
+					}
+
+					{
+						b, err := json.Marshal(data)
+						if err != nil {
+							fmt.Printf("%s: COMMIT %d: DATA: parse error: %v\n", prefix, cursor.SeqNum(), err)
+						} else {
+							fmt.Printf("%s: COMMIT %d: DATA: %s\n", prefix, cursor.SeqNum(), string(b))
+						}
+					}
+
+					states, err := reader.States()
+					if err != nil {
+						app.Fatalf("failed to read commit states from repository %s: %v", teamDriveID, err)
+					}
+					for i, state := range states {
+						b, err := json.Marshal(state)
+						if err != nil {
+							fmt.Printf("%s: COMMIT %d: STATE %d: parse error: %v\n", prefix, cursor.SeqNum(), i, err)
+						} else {
+							fmt.Printf("%s: COMMIT %d: STATE %d: %v\n", prefix, cursor.SeqNum(), i, string(b))
 						}
 					}
 				}

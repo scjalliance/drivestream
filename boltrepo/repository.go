@@ -7,6 +7,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/scjalliance/drivestream/collection"
+	"github.com/scjalliance/drivestream/commit"
 	"github.com/scjalliance/drivestream/page"
 	"github.com/scjalliance/drivestream/resource"
 )
@@ -162,7 +163,7 @@ func (repo *Repository) NextCollectionState(c collection.SeqNum) (n collection.S
 		}
 		if len(k) != 8 {
 			key := append(k[:0:0], k...) // Copy key bytes
-			return BadStateKey{SeqNum: c, BadKey: key}
+			return BadCollectionStateKey{SeqNum: c, BadKey: key}
 		}
 		n = collection.StateNum(binary.BigEndian.Uint64(k)) + 1
 		return nil
@@ -185,7 +186,7 @@ func (repo *Repository) CollectionStates(c collection.SeqNum, start collection.S
 		}
 		cursor := states.Cursor()
 		pos := start
-		key := makeStateKey(pos)
+		key := makeCollectionStateKey(pos)
 		k, v := cursor.Seek(key[:])
 		if k == nil || !bytes.Equal(key[:], k) {
 			return collection.StateNotFound{SeqNum: c, StateNum: start}
@@ -205,10 +206,10 @@ func (repo *Repository) CollectionStates(c collection.SeqNum, start collection.S
 			}
 			if len(k) != 8 {
 				key := append(k[:0:0], k...) // Copy key bytes
-				return BadStateKey{SeqNum: c, BadKey: key}
+				return BadCollectionStateKey{SeqNum: c, BadKey: key}
 			}
 			pos = start + collection.StateNum(n)
-			key = makeStateKey(pos)
+			key = makeCollectionStateKey(pos)
 			if !bytes.Equal(key[:], k) {
 				// The next key doesn't match the expected sequence number
 				// TODO: Consider returning an error here?
@@ -248,7 +249,7 @@ func (repo *Repository) CreateCollectionState(c collection.SeqNum, stateNum coll
 				expected = 0
 			case len(k) != 8:
 				key := append(k[:0:0], k...) // Copy key bytes
-				return BadStateKey{SeqNum: c, BadKey: key}
+				return BadCollectionStateKey{SeqNum: c, BadKey: key}
 			default:
 				expected = collection.StateNum(binary.BigEndian.Uint64(k)) + 1
 			}
@@ -257,7 +258,7 @@ func (repo *Repository) CreateCollectionState(c collection.SeqNum, stateNum coll
 			return collection.StateOutOfOrder{SeqNum: c, StateNum: stateNum, Expected: expected}
 		}
 
-		key := makeStateKey(stateNum)
+		key := makeCollectionStateKey(stateNum)
 		return states.Put(key[:], value)
 	})
 }
@@ -322,7 +323,7 @@ func (repo *Repository) Pages(c collection.SeqNum, start page.SeqNum, p []page.D
 			}
 			if len(k) != 8 {
 				key := append(k[:0:0], k...) // Copy key bytes
-				return BadStateKey{SeqNum: c, BadKey: key}
+				return BadPageKey{SeqNum: c, BadKey: key}
 			}
 			pos = start + page.SeqNum(n)
 			key = makePageKey(pos)
@@ -390,5 +391,236 @@ func (repo *Repository) ClearPages(c collection.SeqNum) error {
 			return nil
 		}
 		return col.DeleteBucket(key)
+	})
+}
+
+// NextCommit returns the sequence number to use for the next
+// commit.
+func (repo *Repository) NextCommit() (n commit.SeqNum, err error) {
+	err = repo.db.View(func(tx *bolt.Tx) error {
+		commits := commitsBucket(tx, repo.teamDriveID)
+		if commits == nil {
+			return nil
+		}
+		cursor := commits.Cursor()
+		k, _ := cursor.Last()
+		if k == nil {
+			return nil
+		}
+		if len(k) != 8 {
+			key := append(k[:0:0], k...) // Copy key bytes
+			return BadCommitKey{BadKey: key}
+		}
+		n = commit.SeqNum(binary.BigEndian.Uint64(k)) + 1
+		return nil
+	})
+	return n, err
+}
+
+// Commits returns commit data for a range of commits
+// starting at the given sequence number. Up to len(p) entries will
+// be returned in p. The number of entries is returned as n.
+func (repo *Repository) Commits(start commit.SeqNum, p []commit.Data) (n int, err error) {
+	err = repo.db.View(func(tx *bolt.Tx) error {
+		commits := commitsBucket(tx, repo.teamDriveID)
+		if commits == nil {
+			return commit.NotFound{SeqNum: start}
+		}
+		cursor := commits.Cursor()
+		pos := start
+		key := makeCommitKey(pos)
+		k, _ := cursor.Seek(key[:])
+		if k == nil || !bytes.Equal(key[:], k) {
+			return commit.NotFound{SeqNum: start}
+		}
+		for n < len(p) {
+			col := commits.Bucket(k)
+			if col == nil {
+				return commit.InvalidData{SeqNum: pos} // All commits must be buckets
+			}
+			value := col.Get([]byte(DataKey))
+			if value == nil {
+				return commit.InvalidData{SeqNum: pos}
+			}
+			if err := json.Unmarshal(value, &p[n]); err != nil {
+				// TODO: Wrap the error in an InvalidData?
+				return err
+			}
+			n++
+			k, _ = cursor.Next()
+			if k == nil {
+				break
+			}
+			pos = start + commit.SeqNum(n)
+			key = makeCommitKey(pos)
+			if !bytes.Equal(key[:], k) {
+				// The next key doesn't match the expected sequence number
+				// TODO: Consider returning an error here?
+				break
+			}
+		}
+		return nil
+	})
+	return n, err
+}
+
+// CreateCommit creates a new commit with the given sequence
+// number and data. If a commit already exists with the sequence
+// number an error will be returned.
+func (repo *Repository) CreateCommit(c commit.SeqNum, data commit.Data) error {
+	value, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	return repo.db.Update(func(tx *bolt.Tx) error {
+		commits, err := createCommitsBucket(tx, repo.teamDriveID)
+		if err != nil {
+			return err
+		}
+
+		var expected commit.SeqNum
+		{
+			cursor := commits.Cursor()
+			k, _ := cursor.Last()
+			switch {
+			case k == nil:
+				expected = 0
+			case len(k) != 8:
+				key := append(k[:0:0], k...) // Copy key bytes
+				return BadCommitKey{BadKey: key}
+			default:
+				expected = commit.SeqNum(binary.BigEndian.Uint64(k)) + 1
+			}
+		}
+		if c != expected {
+			return commit.OutOfOrder{SeqNum: c, Expected: expected}
+		}
+
+		key := makeCommitKey(c)
+		col, err := commits.CreateBucket(key[:])
+		if err != nil {
+			return err
+		}
+		return col.Put([]byte(DataKey), value)
+	})
+}
+
+// NextCommitState returns the state number to use for the next
+// state of the commit.
+func (repo *Repository) NextCommitState(c commit.SeqNum) (n commit.StateNum, err error) {
+	err = repo.db.View(func(tx *bolt.Tx) error {
+		col := commitBucket(tx, repo.teamDriveID, c)
+		if col == nil {
+			return commit.NotFound{SeqNum: c}
+		}
+		states := col.Bucket([]byte(StateBucket))
+		if states == nil {
+			return nil
+		}
+		cursor := states.Cursor()
+		k, _ := cursor.Last()
+		if k == nil {
+			return nil
+		}
+		if len(k) != 8 {
+			key := append(k[:0:0], k...) // Copy key bytes
+			return BadCommitStateKey{SeqNum: c, BadKey: key}
+		}
+		n = commit.StateNum(binary.BigEndian.Uint64(k)) + 1
+		return nil
+	})
+	return n, err
+}
+
+// CommitStates returns a range of commit states for the given
+// commit, starting at the given state number. Up to len(p) states
+// will be returned in p. The number of states is returned as n.
+func (repo *Repository) CommitStates(c commit.SeqNum, start commit.StateNum, p []commit.State) (n int, err error) {
+	err = repo.db.View(func(tx *bolt.Tx) error {
+		col := commitBucket(tx, repo.teamDriveID, c)
+		if col == nil {
+			return commit.NotFound{SeqNum: c}
+		}
+		states := col.Bucket([]byte(StateBucket))
+		if states == nil {
+			return commit.StateNotFound{SeqNum: c, StateNum: start}
+		}
+		cursor := states.Cursor()
+		pos := start
+		key := makeCommitStateKey(pos)
+		k, v := cursor.Seek(key[:])
+		if k == nil || !bytes.Equal(key[:], k) {
+			return commit.StateNotFound{SeqNum: c, StateNum: start}
+		}
+		for n < len(p) {
+			if v == nil {
+				return commit.InvalidState{SeqNum: c, StateNum: pos} // All commits must be non-nil
+			}
+			if err := json.Unmarshal(v, &p[n]); err != nil {
+				// TODO: Wrap the error in an InvalidState?
+				return err
+			}
+			n++
+			k, v = cursor.Next()
+			if k == nil {
+				break
+			}
+			if len(k) != 8 {
+				key := append(k[:0:0], k...) // Copy key bytes
+				return BadCommitStateKey{SeqNum: c, BadKey: key}
+			}
+			pos = start + commit.StateNum(n)
+			key = makeCommitStateKey(pos)
+			if !bytes.Equal(key[:], k) {
+				// The next key doesn't match the expected sequence number
+				// TODO: Consider returning an error here?
+				break
+			}
+		}
+		return nil
+	})
+	return n, err
+}
+
+// CreateCommitState creates a new commit state with the given
+// state number and data. If a state already exists with the state
+// number an error will be returned.
+func (repo *Repository) CreateCommitState(c commit.SeqNum, stateNum commit.StateNum, state commit.State) error {
+	value, err := json.Marshal(state)
+	if err != nil {
+		return err
+	}
+
+	return repo.db.Update(func(tx *bolt.Tx) error {
+		col := commitBucket(tx, repo.teamDriveID, c)
+		if col == nil {
+			return commit.NotFound{SeqNum: c}
+		}
+		states, err := col.CreateBucketIfNotExists([]byte(StateBucket))
+		if err != nil {
+			return err
+		}
+
+		var expected commit.StateNum
+		{
+			cursor := states.Cursor()
+			k, _ := cursor.Last()
+			switch {
+			case k == nil:
+				expected = 0
+			case len(k) != 8:
+				key := append(k[:0:0], k...) // Copy key bytes
+				return BadCommitStateKey{SeqNum: c, BadKey: key}
+			default:
+				expected = commit.StateNum(binary.BigEndian.Uint64(k)) + 1
+			}
+		}
+		if stateNum != expected {
+			return commit.StateOutOfOrder{SeqNum: c, StateNum: stateNum, Expected: expected}
+		}
+
+		key := makeCommitStateKey(stateNum)
+		return states.Put(key[:], value)
 	})
 }

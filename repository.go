@@ -2,6 +2,7 @@ package drivestream
 
 import (
 	"github.com/scjalliance/drivestream/collection"
+	"github.com/scjalliance/drivestream/commit"
 	"github.com/scjalliance/drivestream/resource"
 )
 
@@ -12,6 +13,6 @@ type Repository interface {
 	DriveID() resource.ID
 
 	collection.Repository
-	//commit.Repository
+	commit.Repository
 	//filetree.Repository
 }
