@@ -1,6 +1,6 @@
 package collection
 
-// Cursor is an iterator that can iterate over a sequence of collections.
+// A Cursor can iterate over a sequence of collections.
 type Cursor struct {
 	repo  Repository
 	start SeqNum
