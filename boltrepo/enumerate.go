@@ -12,7 +12,11 @@ func Enumerate(db *bolt.DB) (ids []resource.ID, err error) {
 		if root == nil {
 			return nil
 		}
-		cursor := root.Cursor()
+		drives := root.Bucket([]byte(DriveBucket))
+		if drives == nil {
+			return nil
+		}
+		cursor := drives.Cursor()
 		k, _ := cursor.First()
 		for k != nil {
 			ids = append(ids, resource.ID(k))

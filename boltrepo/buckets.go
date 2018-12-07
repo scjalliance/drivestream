@@ -6,30 +6,48 @@ import (
 	"github.com/scjalliance/drivestream/resource"
 )
 
-// collectionsBucket returns the collections bucket of the team drive.
-func collectionsBucket(tx *bolt.Tx, teamDriveID resource.ID) *bolt.Bucket {
+// driveBucket returns the bucket of the drive.
+func driveBucket(tx *bolt.Tx, teamDriveID resource.ID) *bolt.Bucket {
 	root := tx.Bucket([]byte(RootBucket))
 	if root == nil {
 		return nil
 	}
-	anchor := root.Bucket([]byte(teamDriveID))
-	if anchor == nil {
+	drives := root.Bucket([]byte(DriveBucket))
+	if drives == nil {
 		return nil
 	}
-	return anchor.Bucket([]byte(CollectionBucket))
+	return drives.Bucket([]byte(teamDriveID))
 }
 
-// collectionsBucket returns the collections bucket of the team drive.
-func createCollectionsBucket(tx *bolt.Tx, teamDriveID resource.ID) (*bolt.Bucket, error) {
+// createDriveBucket creates a bucket for the drive.
+func createDriveBucket(tx *bolt.Tx, teamDriveID resource.ID) (*bolt.Bucket, error) {
 	root, err := tx.CreateBucketIfNotExists([]byte(RootBucket))
 	if err != nil {
 		return nil, err
 	}
-	anchor, err := root.CreateBucketIfNotExists([]byte(teamDriveID))
+	drives, err := root.CreateBucketIfNotExists([]byte(DriveBucket))
 	if err != nil {
 		return nil, err
 	}
-	return anchor.CreateBucketIfNotExists([]byte(CollectionBucket))
+	return drives.CreateBucketIfNotExists([]byte(teamDriveID))
+}
+
+// collectionsBucket returns the collections bucket of the drive.
+func collectionsBucket(tx *bolt.Tx, teamDriveID resource.ID) *bolt.Bucket {
+	drv := driveBucket(tx, teamDriveID)
+	if drv == nil {
+		return nil
+	}
+	return drv.Bucket([]byte(CollectionBucket))
+}
+
+// createCollectionsBucket creates the collections bucket for the drive.
+func createCollectionsBucket(tx *bolt.Tx, teamDriveID resource.ID) (*bolt.Bucket, error) {
+	drv, err := createDriveBucket(tx, teamDriveID)
+	if err != nil {
+		return nil, err
+	}
+	return drv.CreateBucketIfNotExists([]byte(CollectionBucket))
 }
 
 // collectionBucket returns the bucket of a particular collection.

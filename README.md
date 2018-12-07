@@ -126,27 +126,30 @@ TODO: Design this process.
 A work-in-progress key/value database schema:
 
 ```
-Key                                                               Value
-----------------------------------------------------------------  ----------------
-/{TEAM_DRIVE_ID}/collection/{COLLECTION_NUM}/data                 "{JSON(COLLECTION_DATA)}"
-/{TEAM_DRIVE_ID}/collection/{COLLECTION_NUM}/state/{STATE_NUM}    "{JSON(COLLECTION_STATE)}"
-/{TEAM_DRIVE_ID}/collection/{COLLECTION_NUM}/page/{PAGE_NUM}      "{JSON(PAGE_DATA)}"
+Key                                                                Value
+----------------------------------------------------------------   ----------------
+/schema                                                            "{SCHEMA_VERSION}"
 
-/{TEAM_DRIVE_ID}/drive/state/{STATE_NUM}                          "{JSON(DRIVE_STATE)}"
-/{TEAM_DRIVE_ID}/drive/commit/{COMMIT_NUM}                        "{JSON(DRIVE_DATA)}"
+/drive/{DRIVE_ID}/collection/{COLLECTION_NUM}/data                 "{JSON(COLLECTION_DATA)}"
+/drive/{DRIVE_ID}/collection/{COLLECTION_NUM}/state/{STATE_NUM}    "{JSON(COLLECTION_STATE)}"
+/drive/{DRIVE_ID}/collection/{COLLECTION_NUM}/page/{PAGE_NUM}      "{JSON(PAGE_DATA)}"
 
-/{TEAM_DRIVE_ID}/file/{FILE_ID}/version/{VERSION}                 "{JSON(FILE_DATA)}"
-/{TEAM_DRIVE_ID}/file/{FILE_ID}/commit/{COMMIT_NUM}               "{VERSION}"
-/{TEAM_DRIVE_ID}/file/{FILE_ID}/tree/{COMMIT_NUM}                 "{HASH(FILE_LIST)}"
+/drive/{DRIVE_ID}/commit/{COMMIT_NUM}/data                         "{JSON(COMMIT_DATA)}"
+/drive/{DRIVE_ID}/commit/{COMMIT_NUM}/state/{STATE_NUM}            "{JSON(COMMIT_STATE)}"
+/drive/{DRIVE_ID}/commit/{COMMIT_NUM}/file/{FILE_ID}               "{VERSION}"
+/drive/{DRIVE_ID}/commit/{COMMIT_NUM}/tree/{PARENT_ID}/{CHILD_ID}  "{ACTION}"
 
-/{TEAM_DRIVE_ID}/commit/{COMMIT_NUM}/data                         "{COMMIT_DATA}"
-/{TEAM_DRIVE_ID}/commit/{COMMIT_NUM}/state/{STATE_NUM}            "{JSON(COMMIT_STATE)}"
-/{TEAM_DRIVE_ID}/commit/{COMMIT_NUM}/version/{FILE_ID}            "{VERSION}"
-/{TEAM_DRIVE_ID}/commit/{COMMIT_NUM}/tree/{PARENT_ID}/{CHILD_ID}  "{ACTION}"
+/drive/{DRIVE_ID}/time/collection/{TIME}                           "{COLLECTION_NUM}"
+/drive/{DRIVE_ID}/time/commit/{TIME}                               "{COMMIT_NUM}"
 
-/{TEAM_DRIVE_ID}/tree/file/{FILE_ID}/head/{FILE_ID}               "{VERSION}"
-/{TEAM_DRIVE_ID}/tree/hash/{HASH(FILE_LIST)}                      "{JSON(FILE_LIST)}"
+/drive/{DRIVE_ID}/version/{VERSION}                                "{JSON(DRIVE_DATA)}"
+/drive/{DRIVE_ID}/view/{COMMIT_NUM}                                "{VERSION}"
+/drive/{DRIVE_ID}/tree/{COMMIT_NUM}                                "{HASH(FILE_LIST|CHUNK_LIST)}"
 
-/{TEAM_DRIVE_ID}/time/commit/{TIME}                               "{COMMIT_NUM}"
-/{TEAM_DRIVE_ID}/time/collection/{TIME}                           "{COLLECTION_NUM}"
+/file/{FILE_ID}/version/{VERSION}                                  "{JSON(FILE_DATA)}"
+/file/{FILE_ID}/view/{DRIVE_ID}/{COMMIT_NUM}                       "{VERSION}"
+/file/{FILE_ID}/tree/{DRIVE_ID}/{COMMIT_NUM}                       "{HASH(FILE_LIST|CHUNK_LIST)}"
+/file/{FILE_ID}/time/{DRIVE_ID}/{TIME}                             "{COMMIT_NUM}"
+
+/tree/hash/{HASH(FILE_LIST|CHUNK_LIST)}                            "{BINARY(FILE_LIST|CHUNK_LIST)}"
 ```
