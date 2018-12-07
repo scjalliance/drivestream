@@ -38,21 +38,23 @@ func NewWriter(repo Repository, seqNum SeqNum, instance string) (*Writer, error)
 
 // Data returns information about the collection.
 func (w *Writer) Data() (Data, error) {
-	var buf [1]Data
-	_, err := w.repo.Collections(w.seqNum, buf[:])
-	return buf[0], err
+	return w.reader().Data()
 }
 
 // NextState returns the state number of the next state to be written.
 func (w *Writer) NextState() StateNum {
-	return w.nextState
+	return w.reader().NextState()
 }
 
 // LastState returns the last state of the collection.
 func (w *Writer) LastState() (State, error) {
-	var buf [1]State
-	_, err := w.repo.CollectionStates(w.seqNum, w.nextState-1, buf[:])
-	return buf[0], err
+	return w.reader().LastState()
+}
+
+// States returns a slice of all states of the collection in ascending
+// order.
+func (w *Writer) States() ([]State, error) {
+	return w.reader().States()
 }
 
 // SetState sets the state of the collection.
@@ -73,14 +75,23 @@ func (w *Writer) SetState(phase Phase, pageNum page.SeqNum) error {
 
 // NextPage returns the page number of the next page to be written
 func (w *Writer) NextPage() page.SeqNum {
-	return w.nextPage
+	return w.reader().NextPage()
 }
 
 // LastPage reads the last page from the collection.
 func (w *Writer) LastPage() (page.Data, error) {
-	var buf [1]page.Data
-	_, err := w.repo.Pages(w.seqNum, w.nextPage-1, buf[:])
-	return buf[0], err
+	return w.reader().LastPage()
+}
+
+// Pages returns a slice of all pages within the collection in ascending
+// order.
+//
+// Note that this may allocate a significant amount of memory for large
+// collections.
+//
+// TODO: Consider making this a buffered call.
+func (w *Writer) Pages() ([]page.Data, error) {
+	return w.reader().Pages()
 }
 
 // AddPage adds the page to the collection.
@@ -99,4 +110,14 @@ func (w *Writer) ClearPages() error {
 		w.nextPage = 0
 	}
 	return err
+}
+
+// reader returns a Reader for w.
+func (w *Writer) reader() *Reader {
+	return &Reader{
+		repo:      w.repo,
+		seqNum:    w.seqNum,
+		nextState: w.nextState,
+		nextPage:  w.nextPage,
+	}
 }
