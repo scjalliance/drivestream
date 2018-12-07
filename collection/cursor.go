@@ -36,7 +36,7 @@ func (c *Cursor) First() {
 
 // Last moves the cursor to the last collection in the sequence.
 func (c *Cursor) Last() {
-	c.pos = c.end
+	c.pos = c.end - 1
 }
 
 // Next moves the cursor to the next collection in the sequence.
