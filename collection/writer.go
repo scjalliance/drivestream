@@ -65,7 +65,7 @@ func (w *Writer) States() ([]State, error) {
 // SetState sets the state of the collection.
 func (w *Writer) SetState(phase Phase, pageNum page.SeqNum) error {
 	err := w.repo.CreateCollectionState(w.seqNum, w.nextState, State{
-		Time:     time.Now(),
+		Time:     time.Now().UTC(),
 		Instance: w.instance,
 		StateData: StateData{
 			Phase: phase,

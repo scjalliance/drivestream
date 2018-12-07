@@ -143,7 +143,7 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 			}
 
 			phase.Log("Collecting current drive data\n")
-			timestamp := time.Now()
+			timestamp := time.Now().UTC()
 			record, err := c.Drive(ctx)
 			if err != nil {
 				return err
@@ -210,7 +210,7 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 					n         int
 					token     = nextToken
 					buf       = make([]resource.Change, s.pageSize)
-					timestamp = time.Now()
+					timestamp = time.Now().UTC()
 				)
 				n, nextToken, err = c.Files(ctx, token, buf)
 				if err != nil {
@@ -277,7 +277,7 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 					n         int
 					token     = nextToken
 					buf       = make([]resource.Change, s.pageSize)
-					timestamp = time.Now()
+					timestamp = time.Now().UTC()
 				)
 				n, nextToken, nextStartToken, err = c.Changes(ctx, token, buf[:])
 				if err != nil {
