@@ -98,7 +98,7 @@ func (c *Collector) Files(ctx context.Context, token string, p []resource.Change
 		call.TeamDriveId(c.id)
 		call.Corpora("teamDrive")
 		call.Spaces("drive")
-		call.Fields("nextPageToken", "files(id,name,mimeType,description,parents,version,lastModifyingUser,originalFilename,md5Checksum,size)")
+		call.Fields("nextPageToken", "files(id,name,mimeType,description,parents,version,createdTime,modifiedTime,lastModifyingUser,originalFilename,md5Checksum,headRevisionId,size)")
 		call.PageSize(c.pageSize(bufferSize - n))
 		if token != "" {
 			call.PageToken(token)

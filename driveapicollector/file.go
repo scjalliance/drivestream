@@ -27,6 +27,7 @@ func MarshalFile(file *drive.File) (resource.File, error) {
 			MimeType:     file.MimeType,
 			Description:  file.Description,
 			OriginalName: file.OriginalFilename,
+			RevisionID:   file.HeadRevisionId,
 			MD5Checksum:  file.Md5Checksum,
 			Size:         file.Size,
 			Created:      created,
