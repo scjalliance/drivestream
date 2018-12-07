@@ -13,9 +13,8 @@ const (
 	PhaseDriveCollection  Phase = 0
 	PhaseFileCollection   Phase = 1
 	PhaseChangeCollection Phase = 2
-	PhaseCommitProcessing Phase = 3
 	PhaseFinalized        Phase = 4
-	PhaseAbandoned        Phase = 1000
+	//PhaseAbandoned        Phase = 1000
 )
 
 // String returns a string representation of p.
@@ -27,8 +26,6 @@ func (p Phase) String() string {
 		return "file collection"
 	case PhaseChangeCollection:
 		return "change collection"
-	case PhaseCommitProcessing:
-		return "commit processing"
 	case PhaseFinalized:
 		return "finalized"
 	default:
@@ -45,8 +42,6 @@ func ParsePhase(v string) (Phase, error) {
 		return PhaseFileCollection, nil
 	case "change collection":
 		return PhaseChangeCollection, nil
-	case "commit processing":
-		return PhaseCommitProcessing, nil
 	case "finalized":
 		return PhaseFinalized, nil
 	default:

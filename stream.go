@@ -124,10 +124,9 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 			return err
 		}
 
-		switch state.Phase {
-		case collection.PhaseCommitProcessing:
+		if state.Page != 0 {
 			eval.Log("%s | %s | PAGE %d\n", strings.ToUpper(data.Type.String()), strings.ToUpper(state.Phase.String()), state.Page)
-		default:
+		} else {
 			eval.Log("%s | %s\n", strings.ToUpper(data.Type.String()), strings.ToUpper(state.Phase.String()))
 		}
 
@@ -306,20 +305,10 @@ func (s *Stream) Update(ctx context.Context, c Collector) (err error) {
 			phase.Log("The end of the change data series has been reached\n")
 
 			phase.Log("Updating collection state\n")
-			if err := w.SetState(collection.PhaseCommitProcessing, 0); err != nil {
-				return err
-			}
-
-			phase.Log("Finished phase in %s\n", phase.Duration())
-
-			fallthrough
-		case collection.PhaseCommitProcessing:
-			phase := col.Task(strings.ToUpper(collection.PhaseCommitProcessing.String()))
-			phase.Log("Starting phase\n")
-			phase.Log("Updating collection state\n")
 			if err := w.SetState(collection.PhaseFinalized, 0); err != nil {
 				return err
 			}
+
 			phase.Log("Finished phase in %s\n", phase.Duration())
 
 			fallthrough
