@@ -18,13 +18,13 @@ driveService, _ := drive.New(oauthHttpClient)
 teamDriveID := resource.ID("TEAMDRIVEID")
 
 // Prepare an in-memory repository
-repo := memrepo.New(teamDriveID)
+repo := memrepo.New()
 
 // Prepare a collector that will query the drive service
 collector := driveapicollector.New(driveService, teamDriveID)
 
 // Create a stream
-stream := drivestream.New(repo, drivestream.WithLogging(os.Stdout))
+stream := drivestream.New(repo, teamDriveID, drivestream.WithLogging(os.Stdout))
 
 // Initialize or update the repository
 stream.Update(ctx, collector) // Will perform first-run initialization and resume incomplete updates automatically
