@@ -4,136 +4,148 @@ import (
 	"fmt"
 
 	"github.com/scjalliance/drivestream/page"
+	"github.com/scjalliance/drivestream/resource"
 )
 
-// NotFound reports that a requested collection does not exist
+// NotFound reports that a collection could not be found
 // within the repository.
 type NotFound struct {
-	SeqNum SeqNum
+	Drive      resource.ID
+	Collection SeqNum
 }
 
 // Error returns a string representation of the error.
 func (e NotFound) Error() string {
-	return fmt.Sprintf("drivestream collection %d could not be found", e.SeqNum)
+	return fmt.Sprintf("drivestream: drive %s: collection %d could not be found", e.Drive, e.Collection)
 }
 
-// OutOfOrder reports that a collection could not be created because its
-// sequence number is not the next one in the series.
+// OutOfOrder reports that a collection could not be created
+// because its sequence number is not the next one in the series.
 type OutOfOrder struct {
-	SeqNum   SeqNum
-	Expected SeqNum
+	Drive      resource.ID
+	Collection SeqNum
+	Expected   SeqNum
 }
 
 // Error returns a string representation of the error.
 func (e OutOfOrder) Error() string {
-	return fmt.Sprintf("drivestream collection %d could not be created because it would be out of order (expected %d)", e.SeqNum, e.Expected)
+	return fmt.Sprintf("drivestream: drive %s: collection %d could not be created because it would be out of order (expected %d)", e.Drive, e.Collection, e.Expected)
 }
 
-// InvalidData reports that a requested collection contains invalid
-// or unparsable data.
-type InvalidData struct {
-	SeqNum SeqNum
+// DataInvalid reports that collection contains invalid or
+// unparsable data.
+type DataInvalid struct {
+	Drive      resource.ID
+	Collection SeqNum
 }
 
 // Error returns a string representation of the error.
-func (e InvalidData) Error() string {
-	return fmt.Sprintf("drivestream collection %d contains invalid data", e.SeqNum)
+func (e DataInvalid) Error() string {
+	return fmt.Sprintf("drivestream: drive %s: collection %d contains invalid data", e.Drive, e.Collection)
 }
 
 // StateNotFound reports that a requested state does not exist
 // within the collection.
 type StateNotFound struct {
-	SeqNum   SeqNum
-	StateNum StateNum
+	Drive      resource.ID
+	Collection SeqNum
+	State      StateNum
 }
 
 // Error returns a string representation of the error.
 func (e StateNotFound) Error() string {
-	return fmt.Sprintf("drivestream collection %d does not contain state %d", e.SeqNum, e.StateNum)
+	return fmt.Sprintf("drivestream: drive %s: collection %d does not contain state %d", e.Drive, e.Collection, e.State)
 }
 
 // StateOutOfOrder reports that a collection state could not be created
 // because its state number is not the next one in the series.
 type StateOutOfOrder struct {
-	SeqNum   SeqNum
-	StateNum StateNum
-	Expected StateNum
+	Drive      resource.ID
+	Collection SeqNum
+	State      StateNum
+	Expected   StateNum
 }
 
 // Error returns a string representation of the error.
 func (e StateOutOfOrder) Error() string {
-	return fmt.Sprintf("drivestream collection %d state %d could not be created because it would be out of order (expected %d)", e.SeqNum, e.StateNum, e.Expected)
+	return fmt.Sprintf("drivestream: drive %s: collection %d state %d could not be created because it would be out of order (expected %d)", e.Drive, e.Collection, e.State, e.Expected)
 }
 
-// InvalidState reports that a requested collection contains invalid
+// StateInvalid reports that a requested collection contains invalid
 // or unparsable state.
-type InvalidState struct {
-	SeqNum   SeqNum
-	StateNum StateNum
+type StateInvalid struct {
+	Drive      resource.ID
+	Collection SeqNum
+	State      StateNum
 }
 
 // Error returns a string representation of the error.
-func (e InvalidState) Error() string {
-	return fmt.Sprintf("drivestream collection %d contains invalid data for state %d", e.SeqNum, e.StateNum)
+func (e StateInvalid) Error() string {
+	return fmt.Sprintf("drivestream: drive %s: collection %d contains invalid data for state %d", e.Drive, e.Collection, e.State)
 }
 
-// TruncatedStates reports that a request for collection states returned a
-// shorter list than expected. This is an indication that the repository is
-// providing an inconsistent view of its data.
-type TruncatedStates struct {
-	SeqNum SeqNum
+// StatesTruncated reports that a request for collection states
+// returned a shorter list than expected. This is an indication that the
+// repository is providing an inconsistent view of its data.
+type StatesTruncated struct {
+	Drive      resource.ID
+	Collection SeqNum
 }
 
 // Error returns a string representation of the error.
-func (e TruncatedStates) Error() string {
-	return fmt.Sprintf("drivestream collection %d contains an inconsistent view of its states", e.SeqNum)
+func (e StatesTruncated) Error() string {
+	return fmt.Sprintf("drivestream: drive %s: collection %d contains an inconsistent view of its states", e.Drive, e.Collection)
 }
 
 // PageNotFound reports that a requested page does not exist
 // within the collection.
 type PageNotFound struct {
-	SeqNum  SeqNum
-	PageNum page.SeqNum
+	Drive      resource.ID
+	Collection SeqNum
+	Page       page.SeqNum
 }
 
 // Error returns a string representation of the error.
 func (e PageNotFound) Error() string {
-	return fmt.Sprintf("drivestream collection %d does not contain page %d", e.SeqNum, e.PageNum)
+	return fmt.Sprintf("drivestream: drive %s: collection %d does not contain page %d", e.Drive, e.Collection, e.Page)
 }
 
 // PageOutOfOrder reports that a collection page could not be created
 // because its page number is not the next one in the series.
 type PageOutOfOrder struct {
-	SeqNum   SeqNum
-	PageNum  page.SeqNum
-	Expected page.SeqNum
+	Drive      resource.ID
+	Collection SeqNum
+	Page       page.SeqNum
+	Expected   page.SeqNum
 }
 
 // Error returns a string representation of the error.
 func (e PageOutOfOrder) Error() string {
-	return fmt.Sprintf("drivestream collection %d page %d could not be created because it would be out of order (expected %d)", e.SeqNum, e.PageNum, e.Expected)
+	return fmt.Sprintf("drivestream: drive %s: collection %d page %d could not be created because it would be out of order (expected %d)", e.Drive, e.Collection, e.Page, e.Expected)
 }
 
-// InvalidPage reports that a requested collection contains invalid
+// PageDataInvalid reports that a requested collection contains invalid
 // or unparsable page data.
-type InvalidPage struct {
-	SeqNum  SeqNum
-	PageNum page.SeqNum
+type PageDataInvalid struct {
+	Drive      resource.ID
+	Collection SeqNum
+	Page       page.SeqNum
 }
 
 // Error returns a string representation of the error.
-func (e InvalidPage) Error() string {
-	return fmt.Sprintf("drivestream collection %d contains invalid data for state %d", e.SeqNum, e.PageNum)
+func (e PageDataInvalid) Error() string {
+	return fmt.Sprintf("drivestream: drive %s: collection %d contains invalid data for state %d", e.Drive, e.Collection, e.Page)
 }
 
-// TruncatedPages reports that a request for collection pages returned a
+// PagesTruncated reports that a request for collection pages returned a
 // shorter list than expected. This is an indication that the repository is
 // providing an inconsistent view of its data.
-type TruncatedPages struct {
-	SeqNum SeqNum
+type PagesTruncated struct {
+	Drive      resource.ID
+	Collection SeqNum
 }
 
 // Error returns a string representation of the error.
-func (e TruncatedPages) Error() string {
-	return fmt.Sprintf("drivestream collection %d contains an inconsistent view of its pages", e.SeqNum)
+func (e PagesTruncated) Error() string {
+	return fmt.Sprintf("drivestream: drive %s: collection %d contains an inconsistent view of its pages", e.Drive, e.Collection)
 }

@@ -2,7 +2,7 @@ package commit
 
 // A Cursor can iterate over a sequence of commits.
 type Cursor struct {
-	repo  Repository
+	seq   Sequence
 	start SeqNum
 	end   SeqNum
 	pos   SeqNum
@@ -11,12 +11,12 @@ type Cursor struct {
 // NewCursor returns a commit cursor for r. The cursor will iterate
 // over a sequence of commits, up to the most recent commit in r
 // at the time the cursor was created.
-func NewCursor(r Repository) (*Cursor, error) {
-	end, err := r.NextCommit()
+func NewCursor(seq Sequence) (*Cursor, error) {
+	end, err := seq.Next()
 	if err != nil {
 		return nil, err
 	}
-	return &Cursor{repo: r, end: end}, nil
+	return &Cursor{seq: seq, end: end}, nil
 }
 
 // Valid return true if the current sequence number is valid.
@@ -56,10 +56,10 @@ func (c *Cursor) Seek(pos SeqNum) {
 
 // Reader returns a reader for the current sequence number.
 func (c *Cursor) Reader() (*Reader, error) {
-	return NewReader(c.repo, c.pos)
+	return NewReader(c.seq.Ref(c.pos))
 }
 
 // Writer returns a writer for the current sequence number.
 func (c *Cursor) Writer(instance string) (*Writer, error) {
-	return NewWriter(c.repo, c.pos, instance)
+	return NewWriter(c.seq.Ref(c.pos), instance)
 }

@@ -5,28 +5,29 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/scjalliance/drivestream"
 	"github.com/scjalliance/drivestream/collection"
 	"github.com/scjalliance/drivestream/commit"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
-func dump(ctx context.Context, app *kingpin.Application, db *DB, kinds []string, wanted []string) {
+func dump(ctx context.Context, app *kingpin.Application, repo drivestream.Repository, kinds []string, wanted []string) {
 	if ctx.Err() != nil {
 		return
 	}
 
-	ids, err := db.Enumerate()
+	ids, err := repo.Drives().List()
 	if err != nil {
 		app.Fatalf("failed to enumerate drivestream database: %v", err)
 	}
 
-	for _, teamDriveID := range ids {
-		repo, _ := db.Repository(teamDriveID)
+	for _, driveID := range ids {
+		drv := repo.Drive(driveID)
 
-		prefix := fmt.Sprintf("DRIVE %s", teamDriveID)
+		prefix := fmt.Sprintf("DRIVE %s", driveID)
 
-		if data, ok := driveData(repo); ok {
-			if !isWanted(wanted, string(teamDriveID), data.Name) {
+		if data, ok := driveData(drv); ok {
+			if !isWanted(wanted, string(driveID), data.Name) {
 				continue
 			}
 			b, err := json.Marshal(data)
@@ -36,7 +37,7 @@ func dump(ctx context.Context, app *kingpin.Application, db *DB, kinds []string,
 				fmt.Printf("%s: DATA: %v\n", prefix, string(b))
 			}
 		} else {
-			if !isWanted(wanted, string(teamDriveID)) {
+			if !isWanted(wanted, string(driveID)) {
 				continue
 			}
 		}
@@ -47,19 +48,19 @@ func dump(ctx context.Context, app *kingpin.Application, db *DB, kinds []string,
 			}
 			switch kind {
 			case "collections", "collection", "cols", "col":
-				cursor, err := collection.NewCursor(repo)
+				cursor, err := collection.NewCursor(drv.Collections())
 				if err != nil {
-					app.Fatalf("failed to create collection cursor for repository %s: %v", teamDriveID, err)
+					app.Fatalf("failed to create collection cursor for repository %s: %v", driveID, err)
 				}
 				for cursor.First(); cursor.Valid(); cursor.Next() {
 					reader, err := cursor.Reader()
 					if err != nil {
-						app.Fatalf("failed to create collection reader for repository %s: %v", teamDriveID, err)
+						app.Fatalf("failed to create collection reader for repository %s: %v", driveID, err)
 					}
 
 					data, err := reader.Data()
 					if err != nil {
-						app.Fatalf("failed to read collection data from repository %s: %v", teamDriveID, err)
+						app.Fatalf("failed to read collection data from repository %s: %v", driveID, err)
 					}
 
 					{
@@ -73,7 +74,7 @@ func dump(ctx context.Context, app *kingpin.Application, db *DB, kinds []string,
 
 					states, err := reader.States()
 					if err != nil {
-						app.Fatalf("failed to read collection states from repository %s: %v", teamDriveID, err)
+						app.Fatalf("failed to read collection states from repository %s: %v", driveID, err)
 					}
 					for i, state := range states {
 						b, err := json.Marshal(state)
@@ -86,7 +87,7 @@ func dump(ctx context.Context, app *kingpin.Application, db *DB, kinds []string,
 
 					pages, err := reader.Pages()
 					if err != nil {
-						app.Fatalf("failed to read pages from repository %s: %v", teamDriveID, err)
+						app.Fatalf("failed to read pages from repository %s: %v", driveID, err)
 					}
 					for i, pg := range pages {
 						if ctx.Err() != nil {
@@ -104,19 +105,19 @@ func dump(ctx context.Context, app *kingpin.Application, db *DB, kinds []string,
 				}
 
 			case "commits", "commit", "com":
-				cursor, err := commit.NewCursor(repo)
+				cursor, err := commit.NewCursor(drv.Commits())
 				if err != nil {
-					app.Fatalf("failed to create commit cursor for repository %s: %v", teamDriveID, err)
+					app.Fatalf("failed to create commit cursor for repository %s: %v", driveID, err)
 				}
 				for cursor.First(); cursor.Valid(); cursor.Next() {
 					reader, err := cursor.Reader()
 					if err != nil {
-						app.Fatalf("failed to create commit reader for repository %s: %v", teamDriveID, err)
+						app.Fatalf("failed to create commit reader for repository %s: %v", driveID, err)
 					}
 
 					data, err := reader.Data()
 					if err != nil {
-						app.Fatalf("failed to read commit data from repository %s: %v", teamDriveID, err)
+						app.Fatalf("failed to read commit data from repository %s: %v", driveID, err)
 					}
 
 					{
@@ -130,7 +131,7 @@ func dump(ctx context.Context, app *kingpin.Application, db *DB, kinds []string,
 
 					states, err := reader.States()
 					if err != nil {
-						app.Fatalf("failed to read commit states from repository %s: %v", teamDriveID, err)
+						app.Fatalf("failed to read commit states from repository %s: %v", driveID, err)
 					}
 					for i, state := range states {
 						b, err := json.Marshal(state)

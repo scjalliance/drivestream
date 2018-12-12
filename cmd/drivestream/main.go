@@ -29,13 +29,13 @@ func main() {
 
 	command := kingpin.MustParse(app.Parse(os.Args[1:]))
 
-	db := NewDB(app, *dbType, *dbPath)
-	defer db.Close()
+	repo, repoClose := NewRepository(app, *dbType, *dbPath)
+	defer repoClose()
 
 	switch command {
 	case updateCommand.FullCommand():
-		update(ctx, app, db, *includeStats, *updateEmail, *updateInterval, *updateWanted)
+		update(ctx, app, repo, *includeStats, *updateEmail, *updateInterval, *updateWanted)
 	case dumpCommand.FullCommand():
-		dump(ctx, app, db, *dumpKinds, *dumpWanted)
+		dump(ctx, app, repo, *dumpKinds, *dumpWanted)
 	}
 }

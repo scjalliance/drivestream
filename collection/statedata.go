@@ -1,11 +1,6 @@
 package collection
 
-import (
-	"fmt"
-
-	"github.com/scjalliance/drivestream/page"
-)
-
+/*
 // StateData holds data about a collection's state.
 type StateData struct {
 	Phase Phase       `json:"phase"`
@@ -16,3 +11,4 @@ type StateData struct {
 func (s StateData) String() string {
 	return fmt.Sprintf("%d.%d", s.Phase, s.Page)
 }
+*/

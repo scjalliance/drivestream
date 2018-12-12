@@ -8,8 +8,8 @@ import (
 )
 
 // driveData returns the most recent drive data for the repository.
-func driveData(repo drivestream.Repository) (data resource.DriveData, ok bool) {
-	cursor, err := collection.NewCursor(repo)
+func driveData(drv drivestream.DriveReference) (data resource.DriveData, ok bool) {
+	cursor, err := collection.NewCursor(drv.Collections())
 	if err != nil {
 		return resource.DriveData{}, false
 	}

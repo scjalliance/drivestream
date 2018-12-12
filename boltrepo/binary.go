@@ -50,3 +50,11 @@ func makeVersionKey(version resource.Version) (key [8]byte) {
 	binary.BigEndian.PutUint64(key[:], uint64(version))
 	return
 }
+
+// makeBool returns a single byte binary representation of a boolean.
+func makeBool(value bool) [1]byte {
+	if value {
+		return [1]byte{1}
+	}
+	return [1]byte{0}
+}

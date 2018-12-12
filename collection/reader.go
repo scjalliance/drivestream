@@ -4,27 +4,25 @@ import "github.com/scjalliance/drivestream/page"
 
 // Reader provides readonly access to a collection.
 type Reader struct {
-	repo      Repository
-	seqNum    SeqNum
+	ref       Reference
 	nextState StateNum
 	nextPage  page.SeqNum
 }
 
 // NewReader returns a collection reader for the given sequence number.
-func NewReader(repo Repository, seqNum SeqNum) (*Reader, error) {
-	nextState, err := repo.NextCollectionState(seqNum)
+func NewReader(ref Reference) (*Reader, error) {
+	nextState, err := ref.States().Next()
 	if err != nil {
 		return nil, err
 	}
 
-	nextPage, err := repo.NextPage(seqNum)
+	nextPage, err := ref.Pages().Next()
 	if err != nil {
 		return nil, err
 	}
 
 	return &Reader{
-		repo:      repo,
-		seqNum:    seqNum,
+		ref:       ref,
 		nextState: nextState,
 		nextPage:  nextPage,
 	}, nil
@@ -32,9 +30,7 @@ func NewReader(repo Repository, seqNum SeqNum) (*Reader, error) {
 
 // Data returns information about the collection.
 func (r *Reader) Data() (Data, error) {
-	var buf [1]Data
-	_, err := r.repo.Collections(r.seqNum, buf[:])
-	return buf[0], err
+	return r.ref.Data()
 }
 
 // NextState returns the state number of the next state to be written.
@@ -49,9 +45,7 @@ func (r *Reader) LastState() (State, error) {
 
 // State returns the requested state from the collection.
 func (r *Reader) State(stateNum StateNum) (State, error) {
-	var buf [1]State
-	_, err := r.repo.CollectionStates(r.seqNum, stateNum, buf[:])
-	return buf[0], err
+	return r.ref.State(stateNum).Data()
 }
 
 // States returns a slice of all states of the collection in ascending
@@ -61,12 +55,12 @@ func (r *Reader) States() ([]State, error) {
 		return nil, nil
 	}
 	states := make([]State, r.nextState)
-	n, err := r.repo.CollectionStates(r.seqNum, 0, states)
+	n, err := r.ref.States().Read(0, states)
 	if err != nil {
 		return nil, err
 	}
 	if n != len(states) {
-		return nil, TruncatedStates{SeqNum: 0}
+		return nil, StatesTruncated{Drive: r.ref.Drive(), Collection: r.ref.SeqNum()}
 	}
 	return states, err
 }
@@ -83,9 +77,7 @@ func (r *Reader) LastPage() (page.Data, error) {
 
 // Page returns the requested page from the collection.
 func (r *Reader) Page(pageNum page.SeqNum) (page.Data, error) {
-	var buf [1]page.Data
-	_, err := r.repo.Pages(r.seqNum, pageNum, buf[:])
-	return buf[0], err
+	return r.ref.Page(pageNum).Data()
 }
 
 // Pages returns a slice of all pages within the collection in ascending
@@ -96,16 +88,16 @@ func (r *Reader) Page(pageNum page.SeqNum) (page.Data, error) {
 //
 // TODO: Consider making this a buffered call.
 func (r *Reader) Pages() ([]page.Data, error) {
-	if r.nextState == 0 {
+	if r.nextPage == 0 {
 		return nil, nil
 	}
 	pages := make([]page.Data, r.nextPage)
-	n, err := r.repo.Pages(r.seqNum, 0, pages)
+	n, err := r.ref.Pages().Read(0, pages)
 	if err != nil {
 		return nil, err
 	}
 	if n != len(pages) {
-		return nil, TruncatedPages{SeqNum: 0}
+		return nil, PagesTruncated{Drive: r.ref.Drive(), Collection: r.ref.SeqNum()}
 	}
 	return pages, err
 }

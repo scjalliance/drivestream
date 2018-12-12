@@ -12,7 +12,7 @@ import (
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
-func update(ctx context.Context, app *kingpin.Application, db *DB, includeStats bool, email string, interval time.Duration, wanted []string) {
+func update(ctx context.Context, app *kingpin.Application, repo drivestream.Repository, includeStats bool, email string, interval time.Duration, wanted []string) {
 	if ctx.Err() != nil {
 		return
 	}
@@ -33,22 +33,26 @@ func update(ctx context.Context, app *kingpin.Application, db *DB, includeStats 
 			app.Fatalf("failed to enumerate team drives: %v", err)
 		}
 
-		for _, teamDrive := range selection {
+		for _, driveData := range selection {
 			if ctx.Err() != nil {
 				return
 			}
 
-			prefix := fmt.Sprintf("DRIVE %s", teamDrive.ID)
+			prefix := fmt.Sprintf("DRIVE %s", driveData.ID)
 
-			fmt.Printf("%s: NAME: %s\n", prefix, teamDrive.Name)
+			fmt.Printf("%s: NAME: %s\n", prefix, driveData.Name)
 
-			repo, existing := db.Repository(teamDrive.ID)
-			if !existing {
-				fmt.Printf("%s: INIT: Repository (%s)\n", prefix, db.Kind())
+			drv := repo.Drive(driveData.ID)
+			exists, err := drv.Exists()
+			if err != nil {
+				app.Fatalf("failed to enumerate team drives: %v", err)
+			}
+			if !exists {
+				fmt.Printf("%s: INIT: Repository (%s)\n", prefix, repo.Type())
 			}
 
-			collector := driveapicollector.New(driveService, string(teamDrive.ID))
-			stream := drivestream.New(repo, drivestream.WithLogger(os.Stdout))
+			collector := driveapicollector.New(driveService, string(driveData.ID))
+			stream := drivestream.New(repo, driveData.ID, drivestream.WithLogger(os.Stdout))
 			stream.Update(ctx, collector)
 		}
 

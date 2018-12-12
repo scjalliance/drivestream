@@ -8,22 +8,21 @@ import (
 
 // A Writer writes data for a commit to a repository.
 type Writer struct {
-	repo      Repository
-	seqNum    SeqNum
+	ref       Reference
 	nextState StateNum
 	instance  string
+	time      time.Time
 }
 
-// NewWriter returns a commit writer for the given sequence number.
-func NewWriter(repo Repository, seqNum SeqNum, instance string) (*Writer, error) {
-	nextState, err := repo.NextCommitState(seqNum)
+// NewWriter returns a commit writer for the given commit.
+func NewWriter(ref Reference, instance string) (*Writer, error) {
+	nextState, err := ref.States().Next()
 	if err != nil {
 		return nil, err
 	}
 
 	return &Writer{
-		repo:      repo,
-		seqNum:    seqNum,
+		ref:       ref,
 		nextState: nextState,
 		instance:  instance,
 	}, nil
@@ -57,7 +56,7 @@ func (w *Writer) States() ([]State, error) {
 
 // SetState sets the state of the commit.
 func (w *Writer) SetState(phase Phase, pageNum page.SeqNum) error {
-	err := w.repo.CreateCommitState(w.seqNum, w.nextState, State{
+	err := w.ref.State(w.nextState).Create(State{
 		Time:     time.Now().UTC(),
 		Instance: w.instance,
 		StateData: StateData{
@@ -74,8 +73,7 @@ func (w *Writer) SetState(phase Phase, pageNum page.SeqNum) error {
 // reader returns a Reader for w.
 func (w *Writer) reader() *Reader {
 	return &Reader{
-		repo:      w.repo,
-		seqNum:    w.seqNum,
+		ref:       w.ref,
 		nextState: w.nextState,
 	}
 }

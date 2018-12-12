@@ -2,21 +2,21 @@ package collection
 
 // A Cursor can iterate over a sequence of collections.
 type Cursor struct {
-	repo  Repository
+	seq   Sequence
 	start SeqNum
 	end   SeqNum
 	pos   SeqNum
 }
 
-// NewCursor returns a collection cursor for r. The cursor will iterate
-// over a sequence of collections, up to the most recent collection in r
+// NewCursor returns a collection cursor for seq. The cursor will iterate
+// over the sequence of collections, up to the most recent collection in seq
 // at the time the cursor was created.
-func NewCursor(r Repository) (*Cursor, error) {
-	end, err := r.NextCollection()
+func NewCursor(seq Sequence) (*Cursor, error) {
+	end, err := seq.Next()
 	if err != nil {
 		return nil, err
 	}
-	return &Cursor{repo: r, end: end}, nil
+	return &Cursor{seq: seq, end: end}, nil
 }
 
 // Valid return true if the current sequence number is valid.
@@ -56,10 +56,10 @@ func (c *Cursor) Seek(pos SeqNum) {
 
 // Reader returns a reader for the current sequence number.
 func (c *Cursor) Reader() (*Reader, error) {
-	return NewReader(c.repo, c.pos)
+	return NewReader(c.seq.Ref(c.pos))
 }
 
 // Writer returns a writer for the current sequence number.
 func (c *Cursor) Writer(instance string) (*Writer, error) {
-	return NewWriter(c.repo, c.pos, instance)
+	return NewWriter(c.seq.Ref(c.pos), instance)
 }
