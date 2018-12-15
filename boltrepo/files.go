@@ -5,6 +5,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/scjalliance/drivestream"
+	"github.com/scjalliance/drivestream/fileview"
 	"github.com/scjalliance/drivestream/resource"
 )
 
@@ -77,6 +78,31 @@ func (repo Files) AddVersions(fileVersions ...resource.File) error {
 			}
 			key := makeVersionKey(fileVersions[i].Version)
 			if err := versions.Put(key[:], payloads[i]); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// AddViewData adds view data to the file map in bulk.
+func (repo Files) AddViewData(entries ...fileview.Data) error {
+	return repo.db.Update(func(tx *bolt.Tx) error {
+		for _, entry := range entries {
+			views, err := createFileViewsBucket(tx, entry.File)
+			if err != nil {
+				return err
+			}
+
+			view, err := views.CreateBucketIfNotExists([]byte(entry.Drive))
+			if err != nil {
+				return err
+			}
+
+			key := makeCommitKey(entry.Commit)
+			value := makeVersionKey(entry.Version)
+			err = view.Put(key[:], value[:])
+			if err != nil {
 				return err
 			}
 		}

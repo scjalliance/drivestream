@@ -2,6 +2,8 @@ package memrepo
 
 import (
 	"github.com/scjalliance/drivestream"
+	"github.com/scjalliance/drivestream/commit"
+	"github.com/scjalliance/drivestream/fileview"
 	"github.com/scjalliance/drivestream/resource"
 )
 
@@ -37,6 +39,24 @@ func (fileMap Files) AddVersions(fileVersions ...resource.File) error {
 		}
 		file.Versions[fileVersion.Version] = fileVersion.FileData
 		fileMap.repo.files[fileVersion.ID] = file
+	}
+	return nil
+}
+
+// AddViewData adds view data to the file map in bulk.
+func (fileMap Files) AddViewData(entries ...fileview.Data) error {
+	for _, entry := range entries {
+		file, ok := fileMap.repo.files[entry.File]
+		if !ok {
+			file = newFileEntry()
+		}
+		view, ok := file.Views[entry.Drive]
+		if !ok {
+			view = make(map[commit.SeqNum]resource.Version)
+			file.Views[entry.Drive] = view
+		}
+		view[entry.Commit] = entry.Version
+		fileMap.repo.files[entry.File] = file
 	}
 	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/scjalliance/drivestream/collection"
 	"github.com/scjalliance/drivestream/commit"
 	"github.com/scjalliance/drivestream/driveversion"
+	"github.com/scjalliance/drivestream/driveview"
 	"github.com/scjalliance/drivestream/resource"
 )
 
@@ -82,4 +83,17 @@ func (ref Drive) Version(v resource.Version) driveversion.Reference {
 		drive:   ref.drive,
 		version: v,
 	}
+}
+
+// View returns a view of the drive.
+func (ref Drive) View() driveview.Reference {
+	return DriveView{
+		db:    ref.db,
+		drive: ref.drive,
+	}
+}
+
+// At returns a version reference of the drive at a particular commit.
+func (ref Drive) At(seqNum commit.SeqNum) (driveversion.Reference, error) {
+	return ref.View().At(seqNum)
 }

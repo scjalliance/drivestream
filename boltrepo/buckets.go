@@ -107,6 +107,24 @@ func createDriveVersionsBucket(tx *bolt.Tx, driveID resource.ID) (*bolt.Bucket, 
 	return drv.CreateBucketIfNotExists([]byte(VersionBucket))
 }
 
+// driveViewBucket returns the view bucket of the drive.
+func driveViewBucket(tx *bolt.Tx, driveID resource.ID) *bolt.Bucket {
+	drv := driveBucket(tx, driveID)
+	if drv == nil {
+		return nil
+	}
+	return drv.Bucket([]byte(ViewBucket))
+}
+
+// createDriveViewBucket creates the view bucket for the drive.
+func createDriveViewBucket(tx *bolt.Tx, driveID resource.ID) (*bolt.Bucket, error) {
+	drv, err := createDriveBucket(tx, driveID)
+	if err != nil {
+		return nil, err
+	}
+	return drv.CreateBucketIfNotExists([]byte(ViewBucket))
+}
+
 // fileBucket returns the bucket of the file.
 func fileBucket(tx *bolt.Tx, fileID resource.ID) *bolt.Bucket {
 	root := tx.Bucket([]byte(RootBucket))
@@ -149,4 +167,22 @@ func createFileVersionsBucket(tx *bolt.Tx, fileID resource.ID) (*bolt.Bucket, er
 		return nil, err
 	}
 	return file.CreateBucketIfNotExists([]byte(VersionBucket))
+}
+
+// fileViewsBucket returns the views bucket of the file.
+func fileViewsBucket(tx *bolt.Tx, fileID resource.ID) *bolt.Bucket {
+	file := fileBucket(tx, fileID)
+	if file == nil {
+		return nil
+	}
+	return file.Bucket([]byte(ViewBucket))
+}
+
+// createFileViewsBucket creates the views bucket for the file.
+func createFileViewsBucket(tx *bolt.Tx, fileID resource.ID) (*bolt.Bucket, error) {
+	file, err := createFileBucket(tx, fileID)
+	if err != nil {
+		return nil, err
+	}
+	return file.CreateBucketIfNotExists([]byte(ViewBucket))
 }

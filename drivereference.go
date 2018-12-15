@@ -4,6 +4,7 @@ import (
 	"github.com/scjalliance/drivestream/collection"
 	"github.com/scjalliance/drivestream/commit"
 	"github.com/scjalliance/drivestream/driveversion"
+	"github.com/scjalliance/drivestream/driveview"
 	"github.com/scjalliance/drivestream/resource"
 )
 
@@ -32,4 +33,13 @@ type DriveReference interface {
 
 	// Version returns a drive version reference. Equivalent to Versions().Ref(s).
 	Version(v resource.Version) driveversion.Reference
+
+	// View returns a view of the drive.
+	View() driveview.Reference
+
+	// At returns a version reference of the drive at a particular commit.
+	At(seqNum commit.SeqNum) (driveversion.Reference, error)
+
+	// Tree returns the tree map for the drive.
+	//Tree() drivetree.Map
 }

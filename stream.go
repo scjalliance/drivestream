@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/scjalliance/drivestream/commit"
+	"github.com/scjalliance/drivestream/fileview"
 
 	"github.com/scjalliance/drivestream/collection"
 	"github.com/scjalliance/drivestream/page"
@@ -666,6 +667,7 @@ func (s *Stream) buildCommits(ctx context.Context, update taskLogger) (err error
 
 func (s *Stream) processSourceChanges(phase taskLogger, com commit.Reference, changes []resource.Change) error {
 	files := make([]resource.File, 0, len(changes))
+	fileViewData := make([]fileview.Data, 0, len(changes))
 	fileChanges := make([]commit.FileChange, 0, len(changes))
 	treeChanges := make([]commit.TreeChange, 0, len(changes)*2)
 	for _, change := range changes {
@@ -679,6 +681,12 @@ func (s *Stream) processSourceChanges(phase taskLogger, com commit.Reference, ch
 					File:    change.File.ID,
 					Version: change.File.Version,
 				})
+				fileViewData = append(fileViewData, fileview.Data{
+					File:    change.File.ID,
+					Drive:   s.drive,
+					Commit:  com.SeqNum(),
+					Version: change.File.Version,
+				})
 				for _, parent := range change.File.Parents {
 					treeChanges = append(treeChanges, commit.TreeChange{
 						Parent: resource.ID(parent),
@@ -688,7 +696,13 @@ func (s *Stream) processSourceChanges(phase taskLogger, com commit.Reference, ch
 			} else {
 				fileChanges = append(fileChanges, commit.FileChange{
 					File:    change.File.ID,
-					Version: 0, // TODO: Use -1 instead?
+					Version: -1, // // FIXME: Use resource.UnspecifiedVersion?
+				})
+				fileViewData = append(fileViewData, fileview.Data{
+					File:    change.File.ID,
+					Drive:   s.drive,
+					Commit:  com.SeqNum(),
+					Version: -1, // FIXME: Use resource.UnspecifiedVersion?
 				})
 				for _, parent := range change.File.Parents {
 					treeChanges = append(treeChanges, commit.TreeChange{
@@ -704,6 +718,13 @@ func (s *Stream) processSourceChanges(phase taskLogger, com commit.Reference, ch
 	if len(files) > 0 {
 		if err := s.repo.Files().AddVersions(files...); err != nil {
 			phase.Log("Recording file versions\n")
+			return err
+		}
+	}
+
+	if len(fileViewData) > 0 {
+		if err := s.repo.Files().AddViewData(fileViewData...); err != nil {
+			phase.Log("Recording file view data\n")
 			return err
 		}
 	}

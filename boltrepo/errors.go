@@ -95,6 +95,31 @@ func (e BadDriveVersionKey) Error() string {
 	return fmt.Sprintf("drivestream: drive %s: the database contains an invalid drive version key: %v", e.Drive, e.BadKey)
 }
 
+// BadDriveViewKey reports that the repository contains invalid key
+// data within its drive view table.
+type BadDriveViewKey struct {
+	Drive  resource.ID
+	BadKey []byte
+}
+
+// Error returns a string representation of the error.
+func (e BadDriveViewKey) Error() string {
+	return fmt.Sprintf("drivestream: drive %s: the database contains an invalid drive view key: %v", e.Drive, e.BadKey)
+}
+
+// BadDriveViewValue reports that the repository contains invalid value
+// data within its drive view table.
+type BadDriveViewValue struct {
+	Drive    resource.ID
+	Commit   commit.SeqNum
+	BadValue []byte
+}
+
+// Error returns a string representation of the error.
+func (e BadDriveViewValue) Error() string {
+	return fmt.Sprintf("drivestream: drive %s: the database contains an invalid drive view value for commit %d: %v", e.Drive, e.Commit, e.BadValue)
+}
+
 // BadFileVersionKey reports that the repository contains invalid key
 // data within its file version table.
 type BadFileVersionKey struct {
@@ -105,4 +130,31 @@ type BadFileVersionKey struct {
 // Error returns a string representation of the error.
 func (e BadFileVersionKey) Error() string {
 	return fmt.Sprintf("drivestream: file %s: the database contains an invalid drive version key: %v", e.File, e.BadKey)
+}
+
+// BadFileViewKey reports that the repository contains invalid key
+// data within its file view table.
+type BadFileViewKey struct {
+	File   resource.ID
+	Drive  resource.ID
+	BadKey []byte
+}
+
+// Error returns a string representation of the error.
+func (e BadFileViewKey) Error() string {
+	return fmt.Sprintf("drivestream: file %s: the database contains an invalid file view key for drive %s: %v", e.File, e.Drive, e.BadKey)
+}
+
+// BadFileViewValue reports that the repository contains invalid value
+// data within its file view table.
+type BadFileViewValue struct {
+	File     resource.ID
+	Drive    resource.ID
+	Commit   commit.SeqNum
+	BadValue []byte
+}
+
+// Error returns a string representation of the error.
+func (e BadFileViewValue) Error() string {
+	return fmt.Sprintf("drivestream: drive %s: the database contains an invalid file view value for drive %s commit %d: %v", e.Drive, e.Drive, e.Commit, e.BadValue)
 }

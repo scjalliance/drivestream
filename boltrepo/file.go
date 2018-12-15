@@ -4,6 +4,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/scjalliance/drivestream"
 	"github.com/scjalliance/drivestream/fileversion"
+	"github.com/scjalliance/drivestream/fileview"
 	"github.com/scjalliance/drivestream/resource"
 )
 
@@ -45,5 +46,22 @@ func (ref File) Version(v resource.Version) fileversion.Reference {
 		db:      ref.db,
 		file:    ref.file,
 		version: v,
+	}
+}
+
+// Views returns the view map for the file.
+func (ref File) Views() fileview.Map {
+	return FileViews{
+		db:   ref.db,
+		file: ref.file,
+	}
+}
+
+// View returns a view of the file for a particular drive.
+func (ref File) View(driveID resource.ID) fileview.Reference {
+	return FileView{
+		db:    ref.db,
+		file:  ref.file,
+		drive: driveID,
 	}
 }
