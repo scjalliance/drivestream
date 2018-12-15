@@ -91,14 +91,14 @@ func commitBucket(tx *bolt.Tx, teamDriveID resource.ID, c commit.SeqNum) *bolt.B
 
 // driveVersionsBucket returns the versions bucket of the drive.
 func driveVersionsBucket(tx *bolt.Tx, driveID resource.ID) *bolt.Bucket {
-	drv := fileBucket(tx, driveID)
+	drv := driveBucket(tx, driveID)
 	if drv == nil {
 		return nil
 	}
 	return drv.Bucket([]byte(VersionBucket))
 }
 
-// createDriveVersionsBucket creates the versions bucket for the file.
+// createDriveVersionsBucket creates the versions bucket for the drive.
 func createDriveVersionsBucket(tx *bolt.Tx, driveID resource.ID) (*bolt.Bucket, error) {
 	drv, err := createDriveBucket(tx, driveID)
 	if err != nil {
