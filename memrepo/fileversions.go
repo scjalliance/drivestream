@@ -5,6 +5,8 @@ import (
 	"github.com/scjalliance/drivestream/resource"
 )
 
+var _ fileversion.Map = (*FileVersions)(nil)
+
 // FileVersions accesses a map of file versions in a bolt repository.
 type FileVersions struct {
 	repo *Repository
