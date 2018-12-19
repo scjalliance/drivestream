@@ -91,3 +91,16 @@ func (ref Drive) View() driveview.Reference {
 func (ref Drive) At(seqNum commit.SeqNum) (driveversion.Reference, error) {
 	return ref.View().At(seqNum)
 }
+
+// Stats returns statistics about the drive.
+func (ref Drive) Stats() (stats drivestream.DriveStats, err error) {
+	drv, ok := ref.repo.drives[ref.drive]
+	if !ok {
+		return stats, nil
+	}
+	stats.Collections = int64(len(drv.Collections))
+	stats.Commits = int64(len(drv.Commits))
+	stats.Versions = int64(len(drv.Versions))
+	stats.ViewCommits = int64(len(drv.View))
+	return stats, nil
+}

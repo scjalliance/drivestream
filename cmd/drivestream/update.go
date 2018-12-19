@@ -12,7 +12,7 @@ import (
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
-func update(ctx context.Context, app *kingpin.Application, repo drivestream.Repository, includeStats bool, email string, interval time.Duration, wanted []string) {
+func update(ctx context.Context, app *kingpin.Application, repo drivestream.Repository, includeMemStats bool, email string, interval time.Duration, wanted []string) {
 	if ctx.Err() != nil {
 		return
 	}
@@ -56,7 +56,7 @@ func update(ctx context.Context, app *kingpin.Application, repo drivestream.Repo
 			stream.Update(ctx, collector)
 		}
 
-		if includeStats {
+		if includeMemStats {
 			printMemUsage()
 			// TODO: Include database statistics
 		}

@@ -97,3 +97,85 @@ func (ref Drive) View() driveview.Reference {
 func (ref Drive) At(seqNum commit.SeqNum) (driveversion.Reference, error) {
 	return ref.View().At(seqNum)
 }
+
+// Stats returns statistics about the drive.
+func (ref Drive) Stats() (stats drivestream.DriveStats, err error) {
+	err = ref.db.View(func(tx *bolt.Tx) error {
+		drv := driveBucket(tx, ref.drive)
+		if drv == nil {
+			return nil
+		}
+		stats.Count++
+		stats.TotalBytes += countBytes(drv)
+		if collections := collectionsBucket(tx, ref.drive); collections != nil {
+			cursor := collections.Cursor()
+			for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
+				stats.Collections++
+				stats.CollectionBytes += int64(len(k)) + int64(len(v))
+				stats.CollectionBytes += countBytes(collections.Bucket(k))
+			}
+		}
+		if commits := commitsBucket(tx, ref.drive); commits != nil {
+			cursor := commits.Cursor()
+			for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
+				stats.Commits++
+				stats.CommitBytes += int64(len(k)) + int64(len(v))
+				stats.CommitBytes += countBytes(commits.Bucket(k))
+			}
+		}
+		if versions := driveVersionsBucket(tx, ref.drive); versions != nil {
+			cursor := versions.Cursor()
+			for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
+				stats.Versions++
+				stats.VersionBytes += int64(len(k)) + int64(len(v))
+				stats.VersionBytes += countBytes(versions.Bucket(k))
+			}
+		}
+		if view := driveViewBucket(tx, ref.drive); view != nil {
+			cursor := view.Cursor()
+			for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
+				stats.ViewCommits++
+				stats.ViewBytes += int64(len(k)) + int64(len(v))
+				stats.ViewBytes += countBytes(view.Bucket(k))
+			}
+		}
+		if files := filesBucket(tx); files != nil {
+			cursor := files.Cursor()
+			for f, _ := cursor.First(); f != nil; f, _ = cursor.Next() {
+				file := files.Bucket(f)
+				if file == nil {
+					continue
+				}
+				views := file.Bucket([]byte(ViewBucket))
+				if views == nil {
+					continue
+				}
+				view := views.Bucket([]byte(ref.drive))
+				if view == nil {
+					continue
+				}
+				stats.Files.Count++
+				stats.Files.TotalBytes += countBytes(file)
+				stats.Files.Views++
+				{
+					cursor := view.Cursor()
+					for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
+						stats.Files.ViewCommits++
+						stats.Files.ViewBytes += int64(len(k)) + int64(len(v))
+						stats.Files.ViewBytes += countBytes(view.Bucket(k))
+					}
+				}
+				if versions := file.Bucket([]byte(VersionBucket)); versions != nil {
+					cursor := versions.Cursor()
+					for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
+						stats.Files.Versions++
+						stats.Files.VersionBytes += int64(len(k)) + int64(len(v))
+						stats.Files.VersionBytes += countBytes(versions.Bucket(k))
+					}
+				}
+			}
+		}
+		return nil
+	})
+	return stats, err
+}

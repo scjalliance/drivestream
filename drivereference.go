@@ -42,4 +42,7 @@ type DriveReference interface {
 
 	// Tree returns the tree map for the drive.
 	//Tree() drivetree.Map
+
+	// Stats returns statistics about the drive.
+	Stats() (DriveStats, error)
 }

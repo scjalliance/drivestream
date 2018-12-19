@@ -125,13 +125,18 @@ func createDriveViewBucket(tx *bolt.Tx, driveID resource.ID) (*bolt.Bucket, erro
 	return drv.CreateBucketIfNotExists([]byte(ViewBucket))
 }
 
-// fileBucket returns the bucket of the file.
-func fileBucket(tx *bolt.Tx, fileID resource.ID) *bolt.Bucket {
+// filesBucket returns the files bucket.
+func filesBucket(tx *bolt.Tx) *bolt.Bucket {
 	root := tx.Bucket([]byte(RootBucket))
 	if root == nil {
 		return nil
 	}
-	files := root.Bucket([]byte(FileBucket))
+	return root.Bucket([]byte(FileBucket))
+}
+
+// fileBucket returns the bucket of the file.
+func fileBucket(tx *bolt.Tx, fileID resource.ID) *bolt.Bucket {
+	files := filesBucket(tx)
 	if files == nil {
 		return nil
 	}
@@ -185,4 +190,19 @@ func createFileViewsBucket(tx *bolt.Tx, fileID resource.ID) (*bolt.Bucket, error
 		return nil, err
 	}
 	return file.CreateBucketIfNotExists([]byte(ViewBucket))
+}
+
+// countBytes counts the total number of bytes in a bucket.
+func countBytes(bucket *bolt.Bucket) (total int64) {
+	if bucket == nil {
+		return 0
+	}
+	cursor := bucket.Cursor()
+	for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
+		total += int64(len(k)) + int64(len(v))
+		if v == nil {
+			total += countBytes(bucket.Bucket(k))
+		}
+	}
+	return total
 }
