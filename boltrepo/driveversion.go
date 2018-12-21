@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/boltdb/bolt"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/driveversion"
 	"github.com/scjalliance/drivestream/resource"
 )
@@ -17,6 +18,11 @@ type DriveVersion struct {
 	db      *bolt.DB
 	drive   resource.ID
 	version resource.Version
+}
+
+// Path returns the path of the drive version.
+func (ref DriveVersion) Path() binpath.Text {
+	return binpath.Text{RootBucket, DriveBucket, ref.drive.String(), VersionBucket, ref.version.String()}
 }
 
 // Drive returns the ID of the drive.

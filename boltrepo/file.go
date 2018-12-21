@@ -3,6 +3,7 @@ package boltrepo
 import (
 	"github.com/boltdb/bolt"
 	"github.com/scjalliance/drivestream"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/fileversion"
 	"github.com/scjalliance/drivestream/fileview"
 	"github.com/scjalliance/drivestream/resource"
@@ -14,6 +15,11 @@ var _ drivestream.FileReference = (*File)(nil)
 type File struct {
 	db   *bolt.DB
 	file resource.ID
+}
+
+// Path returns the path of the file.
+func (ref File) Path() binpath.Text {
+	return binpath.Text{RootBucket, FileBucket, ref.file.String()}
 }
 
 // FileID returns the resource ID of the file.

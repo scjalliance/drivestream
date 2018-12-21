@@ -2,6 +2,7 @@ package boltrepo
 
 import (
 	"github.com/boltdb/bolt"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/commit"
 	"github.com/scjalliance/drivestream/resource"
 )
@@ -13,6 +14,11 @@ type CommitTree struct {
 	db     *bolt.DB
 	drive  resource.ID
 	commit commit.SeqNum
+}
+
+// Path returns the path of the commit tree.
+func (ref CommitTree) Path() binpath.Text {
+	return binpath.Text{RootBucket, DriveBucket, string(ref.drive), TreeBucket, ref.commit.String()}
 }
 
 // Parents returns a list of parent IDs contained within the map.

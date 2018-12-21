@@ -3,6 +3,7 @@ package boltrepo
 import (
 	"github.com/boltdb/bolt"
 	"github.com/scjalliance/drivestream"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/resource"
 )
 
@@ -11,6 +12,11 @@ var _ drivestream.DriveMap = (*Drives)(nil)
 // Drives accesses a map of drives in a bolt repository.
 type Drives struct {
 	db *bolt.DB
+}
+
+// Path returns the path of the drives.
+func (ref Drives) Path() binpath.Text {
+	return binpath.Text{RootBucket, DriveBucket}
 }
 
 // List returns the list of drives contained within the repository.

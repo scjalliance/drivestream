@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 
 	"github.com/boltdb/bolt"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/commit"
 	"github.com/scjalliance/drivestream/fileversion"
 	"github.com/scjalliance/drivestream/fileview"
@@ -19,6 +20,11 @@ type FileView struct {
 	db    *bolt.DB
 	file  resource.ID
 	drive resource.ID
+}
+
+// Path returns the path of the file view.
+func (ref FileView) Path() binpath.Text {
+	return binpath.Text{RootBucket, FileBucket, ref.file.String(), ViewBucket, ref.drive.String()}
 }
 
 // File returns the ID of the file.

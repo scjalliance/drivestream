@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 
 	"github.com/boltdb/bolt"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/driveversion"
 	"github.com/scjalliance/drivestream/resource"
 )
@@ -16,6 +17,11 @@ var _ driveversion.Sequence = (*DriveVersions)(nil)
 type DriveVersions struct {
 	db    *bolt.DB
 	drive resource.ID
+}
+
+// Path returns the path of the drive versions.
+func (ref DriveVersions) Path() binpath.Text {
+	return binpath.Text{RootBucket, DriveBucket, ref.drive.String(), VersionBucket}
 }
 
 // Next returns the next version number in the sequence.

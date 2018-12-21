@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/boltdb/bolt"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/collection"
 	"github.com/scjalliance/drivestream/resource"
 )
@@ -18,6 +19,11 @@ type CollectionState struct {
 	drive      resource.ID
 	collection collection.SeqNum
 	state      collection.StateNum
+}
+
+// Path returns the path of the collection state.
+func (ref CollectionState) Path() binpath.Text {
+	return binpath.Text{RootBucket, DriveBucket, ref.drive.String(), CollectionBucket, ref.collection.String(), StateBucket, ref.state.String()}
 }
 
 // StateNum returns the sequence number of the reference.

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/boltdb/bolt"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/commit"
 	"github.com/scjalliance/drivestream/resource"
 )
@@ -16,6 +17,11 @@ type Commit struct {
 	db     *bolt.DB
 	drive  resource.ID
 	commit commit.SeqNum
+}
+
+// Path returns the path of the commit.
+func (ref Commit) Path() binpath.Text {
+	return binpath.Text{RootBucket, DriveBucket, ref.drive.String(), CommitBucket, ref.commit.String()}
 }
 
 // Drive returns the drive ID of the commit.

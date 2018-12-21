@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/boltdb/bolt"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/collection"
 	"github.com/scjalliance/drivestream/page"
 	"github.com/scjalliance/drivestream/resource"
@@ -17,6 +18,11 @@ type Collection struct {
 	db         *bolt.DB
 	drive      resource.ID
 	collection collection.SeqNum
+}
+
+// Path returns the path of the collection.
+func (ref Collection) Path() binpath.Text {
+	return binpath.Text{RootBucket, DriveBucket, ref.drive.String(), CollectionBucket, ref.collection.String()}
 }
 
 // Drive returns the drive ID of the collection.

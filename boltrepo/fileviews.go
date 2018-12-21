@@ -2,6 +2,7 @@ package boltrepo
 
 import (
 	"github.com/boltdb/bolt"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/fileview"
 	"github.com/scjalliance/drivestream/resource"
 )
@@ -12,6 +13,11 @@ var _ fileview.Map = (*FileViews)(nil)
 type FileViews struct {
 	db   *bolt.DB
 	file resource.ID
+}
+
+// Path returns the path of the file views.
+func (ref FileViews) Path() binpath.Text {
+	return binpath.Text{RootBucket, FileBucket, ref.file.String(), ViewBucket}
 }
 
 // List returns a list of drives with a view of the file.

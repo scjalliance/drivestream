@@ -5,6 +5,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/scjalliance/drivestream"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/fileview"
 	"github.com/scjalliance/drivestream/resource"
 )
@@ -14,6 +15,11 @@ var _ drivestream.FileMap = (*Files)(nil)
 // Files accesses a map of files in a bolt repository.
 type Files struct {
 	db *bolt.DB
+}
+
+// Path returns the path of the files.
+func (ref Files) Path() binpath.Text {
+	return binpath.Text{RootBucket, FileBucket}
 }
 
 // List returns the list of files contained within the repository.

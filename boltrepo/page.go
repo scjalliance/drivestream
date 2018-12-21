@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/boltdb/bolt"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/collection"
 	"github.com/scjalliance/drivestream/page"
 	"github.com/scjalliance/drivestream/resource"
@@ -18,6 +19,11 @@ type Page struct {
 	drive      resource.ID
 	collection collection.SeqNum
 	page       page.SeqNum
+}
+
+// Path returns the path of the page.
+func (ref Page) Path() binpath.Text {
+	return binpath.Text{RootBucket, DriveBucket, ref.drive.String(), CollectionBucket, ref.collection.String(), PageBucket, ref.page.String()}
 }
 
 // SeqNum returns the sequence number of the page.

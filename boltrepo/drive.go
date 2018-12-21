@@ -3,6 +3,7 @@ package boltrepo
 import (
 	"github.com/boltdb/bolt"
 	"github.com/scjalliance/drivestream"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/collection"
 	"github.com/scjalliance/drivestream/commit"
 	"github.com/scjalliance/drivestream/driveversion"
@@ -16,6 +17,11 @@ var _ drivestream.DriveReference = (*Drive)(nil)
 type Drive struct {
 	db    *bolt.DB
 	drive resource.ID
+}
+
+// Path returns the path of the drive.
+func (ref Drive) Path() binpath.Text {
+	return binpath.Text{RootBucket, DriveBucket, ref.drive.String()}
 }
 
 // DriveID returns the resource ID of the drive.

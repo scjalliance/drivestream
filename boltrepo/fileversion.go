@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/boltdb/bolt"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/fileversion"
 	"github.com/scjalliance/drivestream/resource"
 )
@@ -16,6 +17,11 @@ type FileVersion struct {
 	db      *bolt.DB
 	file    resource.ID
 	version resource.Version
+}
+
+// Path returns the path of the file version.
+func (ref FileVersion) Path() binpath.Text {
+	return binpath.Text{RootBucket, FileBucket, ref.file.String(), VersionBucket, ref.version.String()}
 }
 
 // File returns the ID of the file.

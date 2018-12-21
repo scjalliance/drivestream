@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 
 	"github.com/boltdb/bolt"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/fileversion"
 	"github.com/scjalliance/drivestream/resource"
 )
@@ -14,6 +15,11 @@ var _ fileversion.Map = (*FileVersions)(nil)
 type FileVersions struct {
 	db   *bolt.DB
 	file resource.ID
+}
+
+// Path returns the path of the file versions.
+func (ref FileVersions) Path() binpath.Text {
+	return binpath.Text{RootBucket, FileBucket, ref.file.String(), VersionBucket}
 }
 
 // List returns a list of version numbers for the file.

@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 
 	"github.com/boltdb/bolt"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/commit"
 	"github.com/scjalliance/drivestream/driveversion"
 	"github.com/scjalliance/drivestream/driveview"
@@ -18,6 +19,11 @@ var _ driveview.Reference = (*DriveView)(nil)
 type DriveView struct {
 	db    *bolt.DB
 	drive resource.ID
+}
+
+// Path returns the path of the drive view.
+func (ref DriveView) Path() binpath.Text {
+	return binpath.Text{RootBucket, DriveBucket, ref.drive.String(), ViewBucket}
 }
 
 // Drive returns the ID of the drive being viewed.

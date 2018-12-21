@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 
 	"github.com/boltdb/bolt"
+	"github.com/scjalliance/drivestream/binpath"
 	"github.com/scjalliance/drivestream/commit"
 	"github.com/scjalliance/drivestream/resource"
 )
@@ -16,6 +17,11 @@ var _ commit.Sequence = (*Commits)(nil)
 type Commits struct {
 	db    *bolt.DB
 	drive resource.ID
+}
+
+// Path returns the path of the commits.
+func (ref Commits) Path() binpath.Text {
+	return binpath.Text{RootBucket, DriveBucket, ref.drive.String(), CommitBucket}
 }
 
 // Next returns the sequence number to use for the next commit.
