@@ -21,11 +21,11 @@ type CommitStates struct {
 }
 
 // Next returns the state number to use for the next state.
-func (seq CommitStates) Next() (n commit.StateNum, err error) {
-	err = seq.db.View(func(tx *bolt.Tx) error {
-		com := commitBucket(tx, seq.drive, seq.commit)
+func (ref CommitStates) Next() (n commit.StateNum, err error) {
+	err = ref.db.View(func(tx *bolt.Tx) error {
+		com := commitBucket(tx, ref.drive, ref.commit)
 		if com == nil {
-			return commit.NotFound{Drive: seq.drive, Commit: seq.commit}
+			return commit.NotFound{Drive: ref.drive, Commit: ref.commit}
 		}
 		states := com.Bucket([]byte(StateBucket))
 		if states == nil {
@@ -38,7 +38,7 @@ func (seq CommitStates) Next() (n commit.StateNum, err error) {
 		}
 		if len(k) != 8 {
 			key := append(k[:0:0], k...) // Copy key bytes
-			return BadCommitStateKey{Drive: seq.drive, Commit: seq.commit, BadKey: key}
+			return BadCommitStateKey{Drive: ref.drive, Commit: ref.commit, BadKey: key}
 		}
 		n = commit.StateNum(binary.BigEndian.Uint64(k)) + 1
 		return nil
@@ -49,26 +49,26 @@ func (seq CommitStates) Next() (n commit.StateNum, err error) {
 // Read reads a subset of states from the sequence, starting at start.
 // Up to len(p) states will be returned in p. The number of states
 // returned is provided as n.
-func (seq CommitStates) Read(start commit.StateNum, p []commit.State) (n int, err error) {
-	err = seq.db.View(func(tx *bolt.Tx) error {
-		com := commitBucket(tx, seq.drive, seq.commit)
+func (ref CommitStates) Read(start commit.StateNum, p []commit.State) (n int, err error) {
+	err = ref.db.View(func(tx *bolt.Tx) error {
+		com := commitBucket(tx, ref.drive, ref.commit)
 		if com == nil {
-			return commit.NotFound{Drive: seq.drive, Commit: seq.commit}
+			return commit.NotFound{Drive: ref.drive, Commit: ref.commit}
 		}
 		states := com.Bucket([]byte(StateBucket))
 		if states == nil {
-			return commit.StateNotFound{Drive: seq.drive, Commit: seq.commit, State: start}
+			return commit.StateNotFound{Drive: ref.drive, Commit: ref.commit, State: start}
 		}
 		cursor := states.Cursor()
 		pos := start
 		key := makeCommitStateKey(pos)
 		k, v := cursor.Seek(key[:])
 		if k == nil || !bytes.Equal(key[:], k) {
-			return commit.StateNotFound{Drive: seq.drive, Commit: seq.commit, State: start}
+			return commit.StateNotFound{Drive: ref.drive, Commit: ref.commit, State: start}
 		}
 		for n < len(p) {
 			if v == nil {
-				return commit.StateInvalid{Drive: seq.drive, Commit: seq.commit, State: pos} // All states must be non-nil
+				return commit.StateInvalid{Drive: ref.drive, Commit: ref.commit, State: pos} // All states must be non-nil
 			}
 			if err := json.Unmarshal(v, &p[n]); err != nil {
 				// TODO: Wrap the error in an InvalidState?
@@ -81,7 +81,7 @@ func (seq CommitStates) Read(start commit.StateNum, p []commit.State) (n int, er
 			}
 			if len(k) != 8 {
 				key := append(k[:0:0], k...) // Copy key bytes
-				return BadCommitStateKey{Drive: seq.drive, Commit: seq.commit, BadKey: key}
+				return BadCommitStateKey{Drive: ref.drive, Commit: ref.commit, BadKey: key}
 			}
 			pos = start + commit.StateNum(n)
 			key = makeCommitStateKey(pos)
@@ -97,11 +97,11 @@ func (seq CommitStates) Read(start commit.StateNum, p []commit.State) (n int, er
 }
 
 // Ref returns a commit state reference for the sequence number.
-func (seq CommitStates) Ref(stateNum commit.StateNum) commit.StateReference {
+func (ref CommitStates) Ref(stateNum commit.StateNum) commit.StateReference {
 	return CommitState{
-		db:     seq.db,
-		drive:  seq.drive,
-		commit: seq.commit,
+		db:     ref.db,
+		drive:  ref.drive,
+		commit: ref.commit,
 		state:  stateNum,
 	}
 }

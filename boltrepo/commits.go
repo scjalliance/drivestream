@@ -19,9 +19,9 @@ type Commits struct {
 }
 
 // Next returns the sequence number to use for the next commit.
-func (seq Commits) Next() (n commit.SeqNum, err error) {
-	err = seq.db.View(func(tx *bolt.Tx) error {
-		commits := commitsBucket(tx, seq.drive)
+func (ref Commits) Next() (n commit.SeqNum, err error) {
+	err = ref.db.View(func(tx *bolt.Tx) error {
+		commits := commitsBucket(tx, ref.drive)
 		if commits == nil {
 			return nil
 		}
@@ -32,7 +32,7 @@ func (seq Commits) Next() (n commit.SeqNum, err error) {
 		}
 		if len(k) != 8 {
 			key := append(k[:0:0], k...) // Copy key bytes
-			return BadCommitKey{Drive: seq.drive, BadKey: key}
+			return BadCommitKey{Drive: ref.drive, BadKey: key}
 		}
 		n = commit.SeqNum(binary.BigEndian.Uint64(k)) + 1
 		return nil
@@ -43,27 +43,27 @@ func (seq Commits) Next() (n commit.SeqNum, err error) {
 // Read reads commit data for a range of commits
 // starting at the given sequence number. Up to len(p) entries will
 // be returned in p. The number of entries is returned as n.
-func (seq Commits) Read(start commit.SeqNum, p []commit.Data) (n int, err error) {
-	err = seq.db.View(func(tx *bolt.Tx) error {
-		commits := commitsBucket(tx, seq.drive)
+func (ref Commits) Read(start commit.SeqNum, p []commit.Data) (n int, err error) {
+	err = ref.db.View(func(tx *bolt.Tx) error {
+		commits := commitsBucket(tx, ref.drive)
 		if commits == nil {
-			return commit.NotFound{Drive: seq.drive, Commit: start}
+			return commit.NotFound{Drive: ref.drive, Commit: start}
 		}
 		cursor := commits.Cursor()
 		pos := start
 		key := makeCommitKey(pos)
 		k, _ := cursor.Seek(key[:])
 		if k == nil || !bytes.Equal(key[:], k) {
-			return commit.NotFound{Drive: seq.drive, Commit: start}
+			return commit.NotFound{Drive: ref.drive, Commit: start}
 		}
 		for n < len(p) {
 			col := commits.Bucket(k)
 			if col == nil {
-				return commit.DataInvalid{Drive: seq.drive, Commit: pos} // All commits must be buckets
+				return commit.DataInvalid{Drive: ref.drive, Commit: pos} // All commits must be buckets
 			}
 			value := col.Get([]byte(DataKey))
 			if value == nil {
-				return commit.DataInvalid{Drive: seq.drive, Commit: pos}
+				return commit.DataInvalid{Drive: ref.drive, Commit: pos}
 			}
 			if err := json.Unmarshal(value, &p[n]); err != nil {
 				// TODO: Wrap the error in DataInvalid?
@@ -88,10 +88,10 @@ func (seq Commits) Read(start commit.SeqNum, p []commit.Data) (n int, err error)
 }
 
 // Ref returns a commit reference.
-func (seq Commits) Ref(c commit.SeqNum) commit.Reference {
+func (ref Commits) Ref(c commit.SeqNum) commit.Reference {
 	return Commit{
-		db:     seq.db,
-		drive:  seq.drive,
+		db:     ref.db,
+		drive:  ref.drive,
 		commit: c,
 	}
 }

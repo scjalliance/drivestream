@@ -17,9 +17,9 @@ type FileVersions struct {
 }
 
 // List returns a list of version numbers for the file.
-func (versionMap FileVersions) List() (v []resource.Version, err error) {
-	err = versionMap.db.View(func(tx *bolt.Tx) error {
-		versions := fileVersionsBucket(tx, versionMap.file)
+func (ref FileVersions) List() (v []resource.Version, err error) {
+	err = ref.db.View(func(tx *bolt.Tx) error {
+		versions := fileVersionsBucket(tx, ref.file)
 		if versions == nil {
 			return nil
 		}
@@ -28,7 +28,7 @@ func (versionMap FileVersions) List() (v []resource.Version, err error) {
 		for k != nil {
 			if len(k) != 8 {
 				key := append(k[:0:0], k...) // Copy key bytes
-				return BadFileVersionKey{File: versionMap.file, BadKey: key}
+				return BadFileVersionKey{File: ref.file, BadKey: key}
 			}
 			version := resource.Version(binary.BigEndian.Uint64(k))
 			v = append(v, version)
@@ -40,10 +40,10 @@ func (versionMap FileVersions) List() (v []resource.Version, err error) {
 }
 
 // Ref returns a file version reference for the version number.
-func (versionMap FileVersions) Ref(v resource.Version) fileversion.Reference {
+func (ref FileVersions) Ref(v resource.Version) fileversion.Reference {
 	return FileVersion{
-		db:      versionMap.db,
-		file:    versionMap.file,
+		db:      ref.db,
+		file:    ref.file,
 		version: v,
 	}
 }

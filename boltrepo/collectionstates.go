@@ -21,11 +21,11 @@ type CollectionStates struct {
 }
 
 // Next returns the state number to use for the next state.
-func (seq CollectionStates) Next() (n collection.StateNum, err error) {
-	err = seq.db.View(func(tx *bolt.Tx) error {
-		col := collectionBucket(tx, seq.drive, seq.collection)
+func (ref CollectionStates) Next() (n collection.StateNum, err error) {
+	err = ref.db.View(func(tx *bolt.Tx) error {
+		col := collectionBucket(tx, ref.drive, ref.collection)
 		if col == nil {
-			return collection.NotFound{Drive: seq.drive, Collection: seq.collection}
+			return collection.NotFound{Drive: ref.drive, Collection: ref.collection}
 		}
 		states := col.Bucket([]byte(StateBucket))
 		if states == nil {
@@ -38,7 +38,7 @@ func (seq CollectionStates) Next() (n collection.StateNum, err error) {
 		}
 		if len(k) != 8 {
 			key := append(k[:0:0], k...) // Copy key bytes
-			return BadCollectionStateKey{Drive: seq.drive, Collection: seq.collection, BadKey: key}
+			return BadCollectionStateKey{Drive: ref.drive, Collection: ref.collection, BadKey: key}
 		}
 		n = collection.StateNum(binary.BigEndian.Uint64(k)) + 1
 		return nil
@@ -49,26 +49,26 @@ func (seq CollectionStates) Next() (n collection.StateNum, err error) {
 // Read reads a subset of states from the sequence, starting at start.
 // Up to len(p) states will be returned in p. The number of states
 // returned is provided as n.
-func (seq CollectionStates) Read(start collection.StateNum, p []collection.State) (n int, err error) {
-	err = seq.db.View(func(tx *bolt.Tx) error {
-		col := collectionBucket(tx, seq.drive, seq.collection)
+func (ref CollectionStates) Read(start collection.StateNum, p []collection.State) (n int, err error) {
+	err = ref.db.View(func(tx *bolt.Tx) error {
+		col := collectionBucket(tx, ref.drive, ref.collection)
 		if col == nil {
-			return collection.NotFound{Drive: seq.drive, Collection: seq.collection}
+			return collection.NotFound{Drive: ref.drive, Collection: ref.collection}
 		}
 		states := col.Bucket([]byte(StateBucket))
 		if states == nil {
-			return collection.StateNotFound{Drive: seq.drive, Collection: seq.collection, State: start}
+			return collection.StateNotFound{Drive: ref.drive, Collection: ref.collection, State: start}
 		}
 		cursor := states.Cursor()
 		pos := start
 		key := makeCollectionStateKey(pos)
 		k, v := cursor.Seek(key[:])
 		if k == nil || !bytes.Equal(key[:], k) {
-			return collection.StateNotFound{Drive: seq.drive, Collection: seq.collection, State: start}
+			return collection.StateNotFound{Drive: ref.drive, Collection: ref.collection, State: start}
 		}
 		for n < len(p) {
 			if v == nil {
-				return collection.StateInvalid{Drive: seq.drive, Collection: seq.collection, State: pos} // All states must be non-nil
+				return collection.StateInvalid{Drive: ref.drive, Collection: ref.collection, State: pos} // All states must be non-nil
 			}
 			if err := json.Unmarshal(v, &p[n]); err != nil {
 				// TODO: Wrap the error in an InvalidState?
@@ -81,7 +81,7 @@ func (seq CollectionStates) Read(start collection.StateNum, p []collection.State
 			}
 			if len(k) != 8 {
 				key := append(k[:0:0], k...) // Copy key bytes
-				return BadCollectionStateKey{Drive: seq.drive, Collection: seq.collection, BadKey: key}
+				return BadCollectionStateKey{Drive: ref.drive, Collection: ref.collection, BadKey: key}
 			}
 			pos = start + collection.StateNum(n)
 			key = makeCollectionStateKey(pos)
@@ -97,11 +97,11 @@ func (seq CollectionStates) Read(start collection.StateNum, p []collection.State
 }
 
 // Ref returns a collection state reference for the sequence number.
-func (seq CollectionStates) Ref(stateNum collection.StateNum) collection.StateReference {
+func (ref CollectionStates) Ref(stateNum collection.StateNum) collection.StateReference {
 	return CollectionState{
-		db:         seq.db,
-		drive:      seq.drive,
-		collection: seq.collection,
+		db:         ref.db,
+		drive:      ref.drive,
+		collection: ref.collection,
 		state:      stateNum,
 	}
 }

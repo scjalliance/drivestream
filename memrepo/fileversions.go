@@ -14,8 +14,8 @@ type FileVersions struct {
 }
 
 // List returns a list of version numbers for the file.
-func (versionMap FileVersions) List() (v []resource.Version, err error) {
-	file, ok := versionMap.repo.files[versionMap.file]
+func (ref FileVersions) List() (v []resource.Version, err error) {
+	file, ok := ref.repo.files[ref.file]
 	if !ok {
 		return nil, nil
 	}
@@ -26,10 +26,10 @@ func (versionMap FileVersions) List() (v []resource.Version, err error) {
 }
 
 // Ref returns a file version reference for the version number.
-func (versionMap FileVersions) Ref(v resource.Version) fileversion.Reference {
+func (ref FileVersions) Ref(v resource.Version) fileversion.Reference {
 	return FileVersion{
-		repo:    versionMap.repo,
-		file:    versionMap.file,
+		repo:    ref.repo,
+		file:    ref.file,
 		version: v,
 	}
 }

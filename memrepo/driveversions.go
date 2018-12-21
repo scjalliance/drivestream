@@ -14,8 +14,8 @@ type DriveVersions struct {
 }
 
 // Next returns the next version number in the sequence.
-func (seq DriveVersions) Next() (n resource.Version, err error) {
-	drv, ok := seq.repo.drives[seq.drive]
+func (ref DriveVersions) Next() (n resource.Version, err error) {
+	drv, ok := ref.repo.drives[ref.drive]
 	if !ok {
 		return 0, nil
 	}
@@ -25,14 +25,14 @@ func (seq DriveVersions) Next() (n resource.Version, err error) {
 // Read reads drive data for a range of drive versions starting at the
 // given version number. Up to len(p) entries will be returned in p.
 // The number of entries is returned as n.
-func (seq DriveVersions) Read(start resource.Version, p []resource.DriveData) (n int, err error) {
-	drv, ok := seq.repo.drives[seq.drive]
+func (ref DriveVersions) Read(start resource.Version, p []resource.DriveData) (n int, err error) {
+	drv, ok := ref.repo.drives[ref.drive]
 	if !ok {
-		return 0, driveversion.NotFound{Drive: seq.drive, Version: start}
+		return 0, driveversion.NotFound{Drive: ref.drive, Version: start}
 	}
 	length := resource.Version(len(drv.Versions))
 	if start >= length {
-		return 0, driveversion.NotFound{Drive: seq.drive, Version: start}
+		return 0, driveversion.NotFound{Drive: ref.drive, Version: start}
 	}
 	for n < len(p) && start+resource.Version(n) < length {
 		p[n] = drv.Versions[start+resource.Version(n)]
@@ -42,10 +42,10 @@ func (seq DriveVersions) Read(start resource.Version, p []resource.DriveData) (n
 }
 
 // Ref returns a drive version reference for the version number.
-func (seq DriveVersions) Ref(v resource.Version) driveversion.Reference {
+func (ref DriveVersions) Ref(v resource.Version) driveversion.Reference {
 	return DriveVersion{
-		repo:    seq.repo,
-		drive:   seq.drive,
+		repo:    ref.repo,
+		drive:   ref.drive,
 		version: v,
 	}
 }

@@ -14,8 +14,8 @@ type Collections struct {
 }
 
 // Next returns the sequence number to use for the next collection.
-func (seq Collections) Next() (n collection.SeqNum, err error) {
-	drv, ok := seq.repo.drives[seq.drive]
+func (ref Collections) Next() (n collection.SeqNum, err error) {
+	drv, ok := ref.repo.drives[ref.drive]
 	if !ok {
 		return 0, nil
 	}
@@ -25,14 +25,14 @@ func (seq Collections) Next() (n collection.SeqNum, err error) {
 // Read reads collection data for a range of collections
 // starting at the given sequence number. Up to len(p) entries will
 // be returned in p. The number of entries is returned as n.
-func (seq Collections) Read(start collection.SeqNum, p []collection.Data) (n int, err error) {
-	drv, ok := seq.repo.drives[seq.drive]
+func (ref Collections) Read(start collection.SeqNum, p []collection.Data) (n int, err error) {
+	drv, ok := ref.repo.drives[ref.drive]
 	if !ok {
-		return 0, collection.NotFound{Drive: seq.drive, Collection: start}
+		return 0, collection.NotFound{Drive: ref.drive, Collection: start}
 	}
 	length := collection.SeqNum(len(drv.Collections))
 	if start >= length {
-		return 0, collection.NotFound{Drive: seq.drive, Collection: start}
+		return 0, collection.NotFound{Drive: ref.drive, Collection: start}
 	}
 	for n < len(p) && start+collection.SeqNum(n) < length {
 		p[n] = drv.Collections[start+collection.SeqNum(n)].Data
@@ -42,10 +42,10 @@ func (seq Collections) Read(start collection.SeqNum, p []collection.Data) (n int
 }
 
 // Ref returns a collection reference.
-func (seq Collections) Ref(c collection.SeqNum) collection.Reference {
+func (ref Collections) Ref(c collection.SeqNum) collection.Reference {
 	return Collection{
-		repo:       seq.repo,
-		drive:      seq.drive,
+		repo:       ref.repo,
+		drive:      ref.drive,
 		collection: c,
 	}
 }

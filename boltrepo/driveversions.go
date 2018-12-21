@@ -19,9 +19,9 @@ type DriveVersions struct {
 }
 
 // Next returns the next version number in the sequence.
-func (seq DriveVersions) Next() (n resource.Version, err error) {
-	err = seq.db.View(func(tx *bolt.Tx) error {
-		versions := driveVersionsBucket(tx, seq.drive)
+func (ref DriveVersions) Next() (n resource.Version, err error) {
+	err = ref.db.View(func(tx *bolt.Tx) error {
+		versions := driveVersionsBucket(tx, ref.drive)
 		if versions == nil {
 			return nil
 		}
@@ -32,7 +32,7 @@ func (seq DriveVersions) Next() (n resource.Version, err error) {
 		}
 		if len(k) != 8 {
 			key := append(k[:0:0], k...) // Copy key bytes
-			return BadDriveVersionKey{Drive: seq.drive, BadKey: key}
+			return BadDriveVersionKey{Drive: ref.drive, BadKey: key}
 		}
 		n = resource.Version(binary.BigEndian.Uint64(k)) + 1
 		return nil
@@ -43,22 +43,22 @@ func (seq DriveVersions) Next() (n resource.Version, err error) {
 // Read reads drive data for a range of drive versions starting at the
 // given version number. Up to len(p) entries will be returned in p.
 // The number of entries is returned as n.
-func (seq DriveVersions) Read(start resource.Version, p []resource.DriveData) (n int, err error) {
-	err = seq.db.View(func(tx *bolt.Tx) error {
-		versions := driveVersionsBucket(tx, seq.drive)
+func (ref DriveVersions) Read(start resource.Version, p []resource.DriveData) (n int, err error) {
+	err = ref.db.View(func(tx *bolt.Tx) error {
+		versions := driveVersionsBucket(tx, ref.drive)
 		if versions == nil {
-			return driveversion.NotFound{Drive: seq.drive, Version: start}
+			return driveversion.NotFound{Drive: ref.drive, Version: start}
 		}
 		cursor := versions.Cursor()
 		pos := start
 		key := makeVersionKey(pos)
 		k, v := cursor.Seek(key[:])
 		if k == nil || !bytes.Equal(key[:], k) {
-			return driveversion.NotFound{Drive: seq.drive, Version: start}
+			return driveversion.NotFound{Drive: ref.drive, Version: start}
 		}
 		for n < len(p) {
 			if v == nil {
-				return driveversion.InvalidData{Drive: seq.drive, Version: pos} // All versions must be non-nil
+				return driveversion.InvalidData{Drive: ref.drive, Version: pos} // All versions must be non-nil
 			}
 			if err := json.Unmarshal(v, &p[n]); err != nil {
 				// TODO: Wrap the error in InvalidData?
@@ -71,7 +71,7 @@ func (seq DriveVersions) Read(start resource.Version, p []resource.DriveData) (n
 			}
 			if len(k) != 8 {
 				key := append(k[:0:0], k...) // Copy key bytes
-				return BadDriveVersionKey{Drive: seq.drive, BadKey: key}
+				return BadDriveVersionKey{Drive: ref.drive, BadKey: key}
 			}
 			pos = start + resource.Version(n)
 			key = makeVersionKey(pos)
@@ -87,10 +87,10 @@ func (seq DriveVersions) Read(start resource.Version, p []resource.DriveData) (n
 }
 
 // Ref returns a drive version reference for the version number.
-func (seq DriveVersions) Ref(v resource.Version) driveversion.Reference {
+func (ref DriveVersions) Ref(v resource.Version) driveversion.Reference {
 	return DriveVersion{
-		db:      seq.db,
-		drive:   seq.drive,
+		db:      ref.db,
+		drive:   ref.drive,
 		version: v,
 	}
 }

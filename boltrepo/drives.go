@@ -14,8 +14,8 @@ type Drives struct {
 }
 
 // List returns the list of drives contained within the repository.
-func (driveMap Drives) List() (ids []resource.ID, err error) {
-	err = driveMap.db.View(func(tx *bolt.Tx) error {
+func (ref Drives) List() (ids []resource.ID, err error) {
+	err = ref.db.View(func(tx *bolt.Tx) error {
 		root := tx.Bucket([]byte(RootBucket))
 		if root == nil {
 			return nil
@@ -36,9 +36,9 @@ func (driveMap Drives) List() (ids []resource.ID, err error) {
 }
 
 // Ref returns a drive reference.
-func (driveMap Drives) Ref(driveID resource.ID) drivestream.DriveReference {
+func (ref Drives) Ref(driveID resource.ID) drivestream.DriveReference {
 	return Drive{
-		db:    driveMap.db,
+		db:    ref.db,
 		drive: driveID,
 	}
 }

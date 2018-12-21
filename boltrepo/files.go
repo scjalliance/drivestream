@@ -17,8 +17,8 @@ type Files struct {
 }
 
 // List returns the list of files contained within the repository.
-func (repo Files) List() (ids []resource.ID, err error) {
-	err = repo.db.View(func(tx *bolt.Tx) error {
+func (ref Files) List() (ids []resource.ID, err error) {
+	err = ref.db.View(func(tx *bolt.Tx) error {
 		root := tx.Bucket([]byte(RootBucket))
 		if root == nil {
 			return nil
@@ -39,15 +39,15 @@ func (repo Files) List() (ids []resource.ID, err error) {
 }
 
 // Ref returns a file reference.
-func (repo Files) Ref(id resource.ID) drivestream.FileReference {
+func (ref Files) Ref(id resource.ID) drivestream.FileReference {
 	return File{
-		db:   repo.db,
+		db:   ref.db,
 		file: id,
 	}
 }
 
 // AddVersions adds file versions to the file map in bulk.
-func (repo Files) AddVersions(fileVersions ...resource.File) error {
+func (ref Files) AddVersions(fileVersions ...resource.File) error {
 	// Perform the JSON encoding outside the transaction to minimize
 	// time spent within it.
 	payloads := make([][]byte, len(fileVersions))
@@ -58,7 +58,7 @@ func (repo Files) AddVersions(fileVersions ...resource.File) error {
 		}
 		payloads = append(payloads, payload)
 	}
-	return repo.db.Update(func(tx *bolt.Tx) error {
+	return ref.db.Update(func(tx *bolt.Tx) error {
 		root, err := tx.CreateBucketIfNotExists([]byte(RootBucket))
 		if err != nil {
 			return err
@@ -86,8 +86,8 @@ func (repo Files) AddVersions(fileVersions ...resource.File) error {
 }
 
 // AddViewData adds view data to the file map in bulk.
-func (repo Files) AddViewData(entries ...fileview.Data) error {
-	return repo.db.Update(func(tx *bolt.Tx) error {
+func (ref Files) AddViewData(entries ...fileview.Data) error {
+	return ref.db.Update(func(tx *bolt.Tx) error {
 		for _, entry := range entries {
 			views, err := createFileViewsBucket(tx, entry.File)
 			if err != nil {

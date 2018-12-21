@@ -14,8 +14,8 @@ type Commits struct {
 }
 
 // Next returns the sequence number to use for the next commit.
-func (seq Commits) Next() (n commit.SeqNum, err error) {
-	drv, ok := seq.repo.drives[seq.drive]
+func (ref Commits) Next() (n commit.SeqNum, err error) {
+	drv, ok := ref.repo.drives[ref.drive]
 	if !ok {
 		return 0, nil
 	}
@@ -25,14 +25,14 @@ func (seq Commits) Next() (n commit.SeqNum, err error) {
 // Read reads commit data for a range of commits
 // starting at the given sequence number. Up to len(p) entries will
 // be returned in p. The number of entries is returned as n.
-func (seq Commits) Read(start commit.SeqNum, p []commit.Data) (n int, err error) {
-	drv, ok := seq.repo.drives[seq.drive]
+func (ref Commits) Read(start commit.SeqNum, p []commit.Data) (n int, err error) {
+	drv, ok := ref.repo.drives[ref.drive]
 	if !ok {
-		return 0, commit.NotFound{Drive: seq.drive, Commit: start}
+		return 0, commit.NotFound{Drive: ref.drive, Commit: start}
 	}
 	length := commit.SeqNum(len(drv.Commits))
 	if start >= length {
-		return 0, commit.NotFound{Drive: seq.drive, Commit: start}
+		return 0, commit.NotFound{Drive: ref.drive, Commit: start}
 	}
 	for n < len(p) && start+commit.SeqNum(n) < length {
 		p[n] = drv.Commits[start+commit.SeqNum(n)].Data
@@ -42,10 +42,10 @@ func (seq Commits) Read(start commit.SeqNum, p []commit.Data) (n int, err error)
 }
 
 // Ref returns a commit reference.
-func (seq Commits) Ref(c commit.SeqNum) commit.Reference {
+func (ref Commits) Ref(c commit.SeqNum) commit.Reference {
 	return Commit{
-		repo:   seq.repo,
-		drive:  seq.drive,
+		repo:   ref.repo,
+		drive:  ref.drive,
 		commit: c,
 	}
 }

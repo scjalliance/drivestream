@@ -15,38 +15,38 @@ type Files struct {
 }
 
 // List returns the list of files contained within the repository.
-func (fileMap Files) List() (ids []resource.ID, err error) {
-	for id := range fileMap.repo.files {
+func (ref Files) List() (ids []resource.ID, err error) {
+	for id := range ref.repo.files {
 		ids = append(ids, id)
 	}
 	return ids, nil
 }
 
 // Ref returns a file reference.
-func (fileMap Files) Ref(id resource.ID) drivestream.FileReference {
+func (ref Files) Ref(id resource.ID) drivestream.FileReference {
 	return File{
-		repo: fileMap.repo,
+		repo: ref.repo,
 		file: id,
 	}
 }
 
 // AddVersions adds file versions to the file map in bulk.
-func (fileMap Files) AddVersions(fileVersions ...resource.File) error {
+func (ref Files) AddVersions(fileVersions ...resource.File) error {
 	for _, fileVersion := range fileVersions {
-		file, ok := fileMap.repo.files[fileVersion.ID]
+		file, ok := ref.repo.files[fileVersion.ID]
 		if !ok {
 			file = newFileEntry()
 		}
 		file.Versions[fileVersion.Version] = fileVersion.FileData
-		fileMap.repo.files[fileVersion.ID] = file
+		ref.repo.files[fileVersion.ID] = file
 	}
 	return nil
 }
 
 // AddViewData adds view data to the file map in bulk.
-func (fileMap Files) AddViewData(entries ...fileview.Data) error {
+func (ref Files) AddViewData(entries ...fileview.Data) error {
 	for _, entry := range entries {
-		file, ok := fileMap.repo.files[entry.File]
+		file, ok := ref.repo.files[entry.File]
 		if !ok {
 			file = newFileEntry()
 		}
@@ -56,7 +56,7 @@ func (fileMap Files) AddViewData(entries ...fileview.Data) error {
 			file.Views[entry.Drive] = view
 		}
 		view[entry.Commit] = entry.Version
-		fileMap.repo.files[entry.File] = file
+		ref.repo.files[entry.File] = file
 	}
 	return nil
 }

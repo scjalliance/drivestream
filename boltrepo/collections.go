@@ -19,9 +19,9 @@ type Collections struct {
 }
 
 // Next returns the sequence number to use for the next collection.
-func (seq Collections) Next() (n collection.SeqNum, err error) {
-	err = seq.db.View(func(tx *bolt.Tx) error {
-		collections := collectionsBucket(tx, seq.drive)
+func (ref Collections) Next() (n collection.SeqNum, err error) {
+	err = ref.db.View(func(tx *bolt.Tx) error {
+		collections := collectionsBucket(tx, ref.drive)
 		if collections == nil {
 			return nil
 		}
@@ -32,7 +32,7 @@ func (seq Collections) Next() (n collection.SeqNum, err error) {
 		}
 		if len(k) != 8 {
 			key := append(k[:0:0], k...) // Copy key bytes
-			return BadCollectionKey{Drive: seq.drive, BadKey: key}
+			return BadCollectionKey{Drive: ref.drive, BadKey: key}
 		}
 		n = collection.SeqNum(binary.BigEndian.Uint64(k)) + 1
 		return nil
@@ -43,27 +43,27 @@ func (seq Collections) Next() (n collection.SeqNum, err error) {
 // Read reads collection data for a range of collections
 // starting at the given sequence number. Up to len(p) entries will
 // be returned in p. The number of entries is returned as n.
-func (seq Collections) Read(start collection.SeqNum, p []collection.Data) (n int, err error) {
-	err = seq.db.View(func(tx *bolt.Tx) error {
-		collections := collectionsBucket(tx, seq.drive)
+func (ref Collections) Read(start collection.SeqNum, p []collection.Data) (n int, err error) {
+	err = ref.db.View(func(tx *bolt.Tx) error {
+		collections := collectionsBucket(tx, ref.drive)
 		if collections == nil {
-			return collection.NotFound{Drive: seq.drive, Collection: start}
+			return collection.NotFound{Drive: ref.drive, Collection: start}
 		}
 		cursor := collections.Cursor()
 		pos := start
 		key := makeCollectionKey(pos)
 		k, _ := cursor.Seek(key[:])
 		if k == nil || !bytes.Equal(key[:], k) {
-			return collection.NotFound{Drive: seq.drive, Collection: start}
+			return collection.NotFound{Drive: ref.drive, Collection: start}
 		}
 		for n < len(p) {
 			col := collections.Bucket(k)
 			if col == nil {
-				return collection.DataInvalid{Drive: seq.drive, Collection: pos} // All collections must be buckets
+				return collection.DataInvalid{Drive: ref.drive, Collection: pos} // All collections must be buckets
 			}
 			value := col.Get([]byte(DataKey))
 			if value == nil {
-				return collection.DataInvalid{Drive: seq.drive, Collection: pos}
+				return collection.DataInvalid{Drive: ref.drive, Collection: pos}
 			}
 			if err := json.Unmarshal(value, &p[n]); err != nil {
 				// TODO: Wrap the error in DataInvalid?
@@ -88,10 +88,10 @@ func (seq Collections) Read(start collection.SeqNum, p []collection.Data) (n int
 }
 
 // Ref returns a collection reference.
-func (seq Collections) Ref(c collection.SeqNum) collection.Reference {
+func (ref Collections) Ref(c collection.SeqNum) collection.Reference {
 	return Collection{
-		db:         seq.db,
-		drive:      seq.drive,
+		db:         ref.db,
+		drive:      ref.drive,
 		collection: c,
 	}
 }
