@@ -1,11 +1,29 @@
 package page
 
-import "fmt"
+import (
+	"github.com/scjalliance/drivestream/seqnum"
+)
 
 // SeqNum is a page sequence number.
 type SeqNum int64
 
-// String returns a string representation of the page sequence number.
+// String returns a string representation of the sequence number.
 func (number SeqNum) String() string {
-	return fmt.Sprintf("P%10d", number)
+	v := number.Base64()
+	return string(v[:])
+}
+
+// Base64 returns a base64 representation of the sequence number.
+func (number SeqNum) Base64() (k [12]byte) {
+	return seqnum.Encode(number)
+}
+
+// Type returns the type code for the sequence number.
+func (number SeqNum) Type() seqnum.Type {
+	return seqnum.DriveCollectionPage
+}
+
+// Value returns the sequence number as 64-bit integer.
+func (number SeqNum) Value() int64 {
+	return int64(number)
 }
